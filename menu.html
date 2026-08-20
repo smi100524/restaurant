@@ -535,7 +535,7 @@ input,textarea,select{font-family:inherit}
       <p>您的预订菜单已确认，后厨即将备餐～</p>
       <div class="order-no" id="orderNo">#000000</div>
       <p>预计 <b id="eta">15-20</b> 分钟出餐</p>
-      <button class="csv-btn" id="exportCsv" type="button">导出明细 Excel</button>
+      <button class="csv-btn" id="exportCsv" type="button">导出包间菜单 Excel</button>
       <br>
       <button class="again-btn" id="againBtn" type="button">继续点菜</button>
     </div>
@@ -584,11 +584,13 @@ let CATS = ["全部"];
 const state = { cart: {}, cat: "全部", keyword: "" };
 const $ = id => document.getElementById(id);
 const fmt = n => "¥" + n;
-function exportXlsx(rows, filename) {
+function exportXlsx(rows, filename, opts = {}) {
   if (typeof XLSX === "undefined") return toast("Excel 组件加载失败，请刷新重试");
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "明细");
+  if (opts.merges) ws["!merges"] = opts.merges;
+  if (opts.widths) ws["!cols"] = opts.widths.map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws, "包间菜单");
   XLSX.writeFile(wb, filename + ".xlsx");
 }
 
@@ -995,26 +997,27 @@ $("placeOrder").addEventListener("click", async () => {
 $("exportCsv").addEventListener("click", () => {
   if (!lastOrder) return toast("暂无预订记录");
   const o = lastOrder;
-  const csvEsc = v => {
-    v = String(v == null ? "" : v);
-    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
-  };
   const rows = [];
-  rows.push(["订单号", o.no]);
-  rows.push(["客户", o.name]);
-  rows.push(["联系电话", o.phone]);
-  rows.push(["预订部门", o.dept || "—"]);
-  rows.push(["预订人", o.by || "—"]);
-  rows.push(["用餐日期", o.date]);
-  rows.push(["用餐时间", o.time]);
-  rows.push(["用餐人数", o.people + " 人"]);
-  rows.push(["备注", o.note || "无"]);
-  rows.push(["合计金额", "¥" + o.total]);
-  rows.push([]);
-  rows.push(["菜品", "单价", "数量", "小计"]);
-  (o.items || []).forEach(it => rows.push([it.name, it.price, it.qty, it.price * it.qty]));
-  exportXlsx(rows, "预订明细_" + o.no);
-  toast("已导出明细 Excel");
+  rows.push(["包间菜单", "", "", "", ""]);
+  rows.push(["单号：" + o.no + "　客户：" + o.name + "　电话：" + (o.phone || ""), "", "", "", ""]);
+  rows.push(["用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + (o.dept || "____") + "，用餐人数：" + o.people, "", "", "", ""]);
+  rows.push(["序号", "菜类", "菜名", "单价(RMB:元/份)", "备注"]);
+  (o.items || []).forEach((it, i) => {
+    const d = MENU.find(x => x.id === it.id);
+    const cat = d ? d.cat : "";
+    const remark = it.qty > 1 ? "数量×" + it.qty : "";
+    rows.push([i + 1, cat, it.name, it.price, remark]);
+  });
+  rows.push(["小计(RMB:元/桌)", "", "", o.total, ""]);
+  exportXlsx(rows, "包间菜单_" + o.no, {
+    merges: [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 4 } }
+    ],
+    widths: [8, 12, 24, 18, 14]
+  });
+  toast("已导出包间菜单 Excel");
 });
 $("againBtn").addEventListener("click", () => {
   $("checkoutForm").style.display = "";

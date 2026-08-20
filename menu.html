@@ -599,8 +599,7 @@ let CATS = ["全部"];
 const state = { cart: {}, cat: "全部", keyword: "" };
 const $ = id => document.getElementById(id);
 const fmt = n => "¥" + n;
-async function exportBaojianXlsx(o) {
-  if (typeof ExcelJS === "undefined") return toast("Excel 组件加载失败，请刷新重试");
+async function buildBaojianXlsx(o) {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("包间菜单");
   ws.views = [{ showGridLines: false }];
@@ -683,7 +682,11 @@ async function exportBaojianXlsx(o) {
   rowC.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
   ws.mergeCells("A" + (r + 1) + ":E" + (r + 1));
   for (let cc = 1; cc <= 5; cc++) rowC.getCell(cc).border = border;
-  const buf = await wb.xlsx.writeBuffer();
+  return await wb.xlsx.writeBuffer();
+}
+async function exportBaojianXlsx(o) {
+  if (typeof ExcelJS === "undefined") return toast("Excel 组件加载失败，请刷新重试");
+  const buf = await buildBaojianXlsx(o);
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -779,21 +782,33 @@ let emailCfg = { serviceId: "", templateId: "", publicKey: "", toEmail: "" };
 async function loadEmailCfg() {
   try { const c = await idbGet("emailConfig"); if (c) emailCfg = Object.assign(emailCfg, c); } catch (e) {}
 }
+function bufToBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(bin);
+}
 async function sendEmail(params) {
   if (!emailCfg.serviceId || !emailCfg.templateId || !emailCfg.publicKey) return false;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
+  const timer = setTimeout(() => ctrl.abort(), 15000);
+  const { attachments, ...rest } = params || {};
   try {
+    const payload = {
+      service_id: emailCfg.serviceId,
+      template_id: emailCfg.templateId,
+      user_id: emailCfg.publicKey,
+      template_params: Object.assign({ to_email: emailCfg.toEmail || "money477@qq.com" }, rest)
+    };
+    if (attachments && attachments.length) payload.attachments = attachments;
     const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal: ctrl.signal,
-      body: JSON.stringify({
-        service_id: emailCfg.serviceId,
-        template_id: emailCfg.templateId,
-        user_id: emailCfg.publicKey,
-        template_params: Object.assign({ to_email: emailCfg.toEmail || "money477@qq.com" }, params)
-      })
+      body: JSON.stringify(payload)
     });
     clearTimeout(timer);
     return resp.ok;
@@ -1081,12 +1096,21 @@ $("placeOrder").addEventListener("click", async () => {
   $("checkoutForm").style.display = "none";
   $("successView").style.display = "block";
 
+  let xlsxAtt = [];
+  try {
+    if (typeof ExcelJS !== "undefined") {
+      const xbuf = await buildBaojianXlsx(order);
+      xlsxAtt = [{ name: "包间菜单_" + order.no + ".xlsx", data: bufToBase64(xbuf), type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }];
+    }
+  } catch (err) { xlsxAtt = []; }
+
   const sent = await sendEmail({
     subject: "【赛尔美餐厅】新订单通知 " + order.no,
     message: "订单号：" + order.no + "\n客户：" + order.name + "\n联系电话：" + order.phone + "\n预订部门：" + (order.dept || "—") + "\n预订人：" + (order.by || "—") + "\n用餐日期：" + order.date + " " + order.time + "\n用餐人数：" + order.people + " 人\n备注：" + (order.note || "无") + "\n菜品：" + order.items.map(i => i.name + "×" + i.qty).join("、") + "\n合计：¥" + order.total,
     no: order.no, customer: order.name, phone: order.phone, dept: order.dept || "", booker: order.by || "",
     date: order.date, time: order.time, people: order.people, note: order.note || "",
-    items: order.items.map(i => i.name + "×" + i.qty).join("、"), total: order.total
+    items: order.items.map(i => i.name + "×" + i.qty).join("、"), total: order.total,
+    attachments: xlsxAtt
   });
   toast(sent ? "🎉 预订已确认，已邮件通知" : "🎉 预订已确认");
   state.cart = {};

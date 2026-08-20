@@ -344,6 +344,15 @@ input,textarea,select{font-family:inherit}
   transition:transform .15s;
 }
 .success .again-btn:active{transform:scale(.96)}
+.view-info, .view-items{
+  text-align:left;background:#f4ecda;border:1px solid var(--line);border-radius:8px;
+  padding:12px 16px;margin:12px 0 16px;font-size:13px;color:var(--sub);
+}
+.view-info .row, .view-items .row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px dashed rgba(176,154,104,.3)}
+.view-info .row:last-child, .view-items .row:last-child{border-bottom:none}
+.view-info .row b, .view-items .row b{color:var(--ink);font-weight:400;text-align:right;word-break:break-all;max-width:62%}
+.view-items .grand{border-top:1px dashed var(--line);margin-top:4px;padding-top:6px;color:var(--ink);font-weight:700}
+.view-items .grand b{color:var(--cinnabar);font-size:17px}
 /* ===== Toast ===== */
 .toast{
   position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-16px);
@@ -538,6 +547,14 @@ input,textarea,select{font-family:inherit}
       <button class="csv-btn" id="exportCsv" type="button">打印菜单确认</button>
       <br>
       <button class="again-btn" id="againBtn" type="button">查看预订菜单</button>
+    </div>
+    <div class="success" id="viewOrderView" style="display:none">
+      <div class="s-emoji">📋</div>
+      <h3>预订菜单</h3>
+      <div class="order-no" id="viewOrderNo">#000000</div>
+      <div class="view-info" id="viewInfo"></div>
+      <div class="view-items" id="viewItems"></div>
+      <button class="again-btn" id="viewOrderClose" type="button">关 闭</button>
     </div>
   </div>
 </div>
@@ -1078,14 +1095,36 @@ $("placeOrder").addEventListener("click", async () => {
   saveCart();
   $("fNote").value = ""; $("fName").value = ""; $("fPhone").value = ""; $("fDept").value = ""; $("fBy").value = "";
 });
-$("exportCsv").addEventListener("click", () => {
-  if (!lastOrder) return toast("暂无预订记录");
-  exportBaojianXlsx(lastOrder);
-  toast("已导出包间菜单 Excel");
-});
+function renderViewOrder(o) {
+  $("viewOrderNo").textContent = "#" + o.no;
+  const info = [
+    ["客户", o.name],
+    ["联系电话", o.phone || "—"],
+    ["预订部门", o.dept || "—"],
+    ["预订人", o.by || "—"],
+    ["用餐日期", (o.date || "") + " " + (o.time || "")],
+    ["用餐人数", o.people + " 人"],
+    ["备注", o.note || "无"]
+  ];
+  $("viewInfo").innerHTML = info.map(function (kv) {
+    var k = kv[0], v = kv[1];
+    return '<div class="row"><span>' + k + '</span><b>' + esc(v) + '</b></div>';
+  }).join("");
+  var items = (o.items || []).map(function (i) {
+    return '<div class="row"><span>' + esc(i.name) + ' × ' + i.qty + '</span><b>¥' + (i.price * i.qty) + '</b></div>';
+  }).join("");
+  $("viewItems").innerHTML = items + '<div class="row grand"><span>合计</span><b>' + fmt(o.total) + '</b></div>';
+}
 $("againBtn").addEventListener("click", () => {
+  if (!lastOrder) { closeCheckout(); return; }
+  renderViewOrder(lastOrder);
+  $("successView").style.display = "none";
+  $("viewOrderView").style.display = "block";
+});
+$("viewOrderClose").addEventListener("click", () => {
   $("checkoutForm").style.display = "";
   $("successView").style.display = "none";
+  $("viewOrderView").style.display = "none";
   closeCheckout();
   renderAll();
 });

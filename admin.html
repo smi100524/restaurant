@@ -71,6 +71,10 @@ input,textarea,select{font-family:inherit}
   border-bottom:1px solid var(--line);
 }
 .brand{display:flex;align-items:center;gap:12px}
+.brand b{font-size:18px;letter-spacing:4px;font-weight:700}
+.brand span{font-size:12px;color:var(--celadon);letter-spacing:2px}
+.brand-logo{height:20px;width:auto;object-fit:contain}
+.login-logo{height:32px;width:auto;max-width:140px;object-fit:contain;display:block;margin:0 auto 14px}
 .logo{
   width:42px;height:42px;border-radius:6px;
   background:var(--red);color:#f6ecd8;
@@ -265,7 +269,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
 <!-- 管理端登录 -->
 <div class="login-view" id="loginView">
   <div class="login-card">
-    <div class="l-logo">赛</div>
+    <img class="login-logo" src="images/logo.png" alt="赛尔美餐厅">
     <h2>赛尔美餐厅</h2>
     <div class="l-sub">SMISS Restaurant · 管理端</div>
     <input id="loginPw" type="password" placeholder="请输入管理密码" autocomplete="off">
@@ -276,13 +280,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
 </div>
 
 <header class="topbar">
-  <div class="brand">
-    <div class="logo">拾</div>
-    <div>
-      <div class="brand-name">拾味小馆</div>
-      <div class="brand-sub">菜单管理</div>
-    </div>
-  </div>
+  <a class="brand" href="index.html"><img class="brand-logo" src="images/logo.png" alt="赛尔美"><b>赛尔美</b><span>SMISS</span></a>
   <div class="top-actions">
     <a class="admin-link" href="index.html">首页</a>
     <a class="admin-link" href="menu.html">返回点菜页</a>

@@ -36,6 +36,7 @@ input{font-family:inherit}
 .brand{display:flex;align-items:baseline;gap:8px;text-decoration:none;color:var(--ink)}
 .brand b{font-size:18px;letter-spacing:4px;font-weight:700}
 .brand span{font-size:12px;color:var(--celadon);letter-spacing:2px}
+.brand-logo{height:20px;width:auto;object-fit:contain;align-self:center}
 nav{display:flex;gap:4px}
 nav a{
   padding:6px 14px;font-size:14px;letter-spacing:2px;color:var(--sub);
@@ -220,7 +221,7 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
 </head><body>
 
 <header class="topbar">
-  <a class="brand" href="index.html"><b>赛尔美</b><span>SMISS</span></a>
+  <a class="brand" href="index.html"><img class="brand-logo" src="images/logo.png" alt="赛尔美"><b>赛尔美</b><span>SMISS</span></a>
   <nav>
     <a href="index.html" class="active">首页</a>
     <a href="menu.html">点菜</a>

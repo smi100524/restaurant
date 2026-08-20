@@ -604,7 +604,7 @@ async function exportBaojianXlsx(o) {
   ws.mergeCells("A1:E1");
   const r2 = ws.getRow(2); r2.height = 33;
   const c2 = r2.getCell(1);
-  c2.value = "用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + (o.dept || "____") + "，用餐人数：" + o.people;
+  c2.value = "用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + "　　" + "，用餐人数：" + o.people + "　客户：" + (o.name || "");
   c2.font = { name: FONT, size: 12, bold: true };
   c2.alignment = { horizontal: "left", vertical: "middle" };
   ws.mergeCells("A2:E2");

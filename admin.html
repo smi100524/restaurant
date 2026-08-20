@@ -338,7 +338,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
       <div class="data-toolbar">
         <input id="dataSearch" type="text" placeholder="搜索客户 / 电话…" autocomplete="off">
         <input id="dataDate" type="date">
-        <button class="ghost" id="dataExport" type="button">导出 CSV</button>
+        <button class="ghost" id="dataExport" type="button">导出 Excel</button>
         <button class="danger" id="dataClear" type="button">清空当前列表</button>
         <span class="img-sel">数据已同步到云端（Supabase）</span>
       </div>
@@ -433,10 +433,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
       <span class="hint">用 CSV 模板一次添加多道菜</span>
     </div>
     <div class="panel-body">
-      <div class="csv-tip">① 下载模板 → ② 按列填写（菜名必填；图片列填文件名，如 31.jpg；标签用「|」或「、」分隔）→ ③ 如需直接导入图片，点「选择图片文件」选同名图片 → ④ 批量导入 CSV</div>
+      <div class="csv-tip">① 下载模板（Excel）→ ② 按列填写（菜名必填；图片列填文件名，如 31.jpg；标签用「|」或「、」分隔）→ ③ 如需直接导入图片，点「选择图片文件」选同名图片 → ④ 批量导入（支持 Excel / CSV）</div>
       <div class="tools" style="margin-top:12px">
-        <button class="ghost" id="dlTemplate" type="button">下载导入模板 CSV</button>
-        <button class="ghost" id="exportCsvMenu" type="button">导出当前菜单 CSV</button>
+        <button class="ghost" id="dlTemplate" type="button">下载导入模板 Excel</button>
+        <button class="ghost" id="exportCsvMenu" type="button">导出当前菜单 Excel</button>
         <select id="importMode">
           <option value="append">追加导入</option>
           <option value="overwrite">覆盖导入（清空现有）</option>
@@ -445,7 +445,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
         <input type="file" id="importImgFiles" accept="image/*" multiple hidden>
         <span class="img-sel" id="imgSelStatus">未选择图片</span>
         <button class="primary" id="importCsvBtn" type="button">批量导入 CSV</button>
-        <input type="file" id="importCsvFile" accept=".csv,text/csv" hidden>
+        <input type="file" id="importCsvFile" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
         <input type="file" id="rowImgFile" accept="image/*" hidden>
       </div>
     </div>
@@ -530,7 +530,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </div>
 </div>
 
-<div class="toast" id="toast"></div><script>
+<div class="toast" id="toast"></div><script src="lib/xlsx.full.min.js"></script>
+<script>
 /* ============ 默认菜单（与点菜页一致） ============ */
 const DEFAULT_MENU = [
   { id: 1,  name: "宫保鸡丁",   en: "Kung Pao Chicken",          desc: "鸡丁滑嫩、花生香脆，咸甜微辣很下饭", price: 28, cat: "热菜", emoji: "🍗", tags: ["招牌","辣"] },
@@ -941,6 +942,13 @@ function csvCell(v) {
   v = String(v == null ? "" : v);
   return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
 }
+function exportXlsx(rows, filename) {
+  if (typeof XLSX === "undefined") return toast("Excel 组件加载失败，请刷新重试");
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, "明细");
+  XLSX.writeFile(wb, filename + ".xlsx");
+}
 function downloadTextFile(name, content, type) {
   const blob = new Blob(["\uFEFF" + content], { type: type + ";charset=utf-8;" });
   const a = document.createElement("a");
@@ -982,20 +990,18 @@ $("dlTemplate").addEventListener("click", () => {
     ["示例菜名", "English Name", "28", "热菜", "一句话介绍这道菜", "31.jpg", "招牌|辣"],
     ["另一道菜", "Another Dish", "18", "凉菜", "另一道菜的介绍", "32.jpg", "素"]
   ];
-  const csv = rows.map(r => r.map(csvCell).join(",")).join("\r\n");
-  downloadTextFile("菜品导入模板.csv", csv, "text/csv");
+  exportXlsx(rows, "菜品导入模板");
   toast("模板已下载");
 });
-/* 导出当前菜单 CSV */
+/* 导出当前菜单 Excel */
 $("exportCsvMenu").addEventListener("click", () => {
   const rows = [["菜名", "英文名", "价格", "分类", "简介", "图片", "标签"]];
   data.dishes.forEach(d => {
     const img = d.img && d.img.indexOf("data:") === 0 ? "" : (d.img || "");
     rows.push([d.name, d.en || "", d.price, d.cat, d.desc || "", img, (d.tags || []).join("|")]);
   });
-  const csv = rows.map(r => r.map(csvCell).join(",")).join("\r\n");
-  downloadTextFile("当前菜单.csv", csv, "text/csv");
-  toast("已导出当前菜单 CSV");
+  exportXlsx(rows, "当前菜单");
+  toast("已导出当前菜单 Excel");
 });
 /* 批量导入 */
 let csvPendingImgs = [];
@@ -1007,79 +1013,89 @@ $("importImgFiles").addEventListener("change", e => {
   st.classList.toggle("ok", csvPendingImgs.length > 0);
 });
 $("importCsvBtn").addEventListener("click", () => $("importCsvFile").click());
+async function doImport(rows) {
+  if (rows.length < 2) return toast("文件内容为空，请先填写菜品");
+  const header = rows[0].map(h => String(h).trim());
+  const idx = n => header.findIndex(h => h === n);
+  const iName = idx("菜名"), iEn = idx("英文名"), iPrice = idx("价格"), iCat = idx("分类"),
+        iDesc = idx("简介"), iImg = idx("图片"), iTags = idx("标签");
+  if (iName < 0 || iPrice < 0 || iCat < 0) return toast("模板格式不对，请下载最新模板");
+  const imgMap = {};
+  for (const f of csvPendingImgs) {
+    const dataUrl = await new Promise(res => {
+      const rd = new FileReader();
+      rd.onload = () => res(rd.result);
+      rd.onerror = () => res(null);
+      rd.readAsDataURL(f);
+    });
+    if (dataUrl) imgMap[f.name] = dataUrl;
+  }
+  const mode = $("importMode").value;
+  if (mode === "overwrite") {
+    if (!confirm("覆盖导入会清空当前全部菜品，确定继续吗？")) return false;
+    data.dishes = [];
+  }
+  const existing = new Set(data.dishes.map(d => d.name));
+  let added = 0; const skipped = [];
+  for (let r = 1; r < rows.length; r++) {
+    const c = rows[r];
+    if (!Array.isArray(c)) continue;
+    const name = String(c[iName] == null ? "" : c[iName]).trim();
+    if (!name) { skipped.push("第" + (r + 1) + "行：菜名为空"); continue; }
+    if (existing.has(name)) { skipped.push("第" + (r + 1) + "行：「" + name + "」已存在，跳过"); continue; }
+    const price = parseFloat(c[iPrice]);
+    if (isNaN(price) || price < 0) { skipped.push("第" + (r + 1) + "行：「" + name + "」价格无效"); continue; }
+    const cat = String(c[iCat] == null ? "" : c[iCat]).trim() || "其他";
+    if (!data.categories.includes(cat)) data.categories.push(cat);
+    const tags = String(c[iTags] == null ? "" : c[iTags]).split(/[、|,，]/).map(t => t.trim()).filter(Boolean);
+    let img = iImg >= 0 ? String(c[iImg] == null ? "" : c[iImg]).trim() : "";
+    if (img) {
+      if (imgMap[img]) img = imgMap[img];
+      else if (!/^(images\/|data:|https?:)/.test(img)) img = "images/" + img;
+    }
+    const dish = {
+      id: nextId(),
+      name,
+      en: iEn >= 0 ? String(c[iEn] == null ? "" : c[iEn]).trim() : "",
+      price,
+      cat,
+      desc: iDesc >= 0 ? String(c[iDesc] == null ? "" : c[iDesc]).trim() : "",
+      emoji: "🍽️",
+      tags
+    };
+    if (img) dish.img = img;
+    data.dishes.push(dish);
+    existing.add(name);
+    added++;
+  }
+  await saveData();
+  renderAllAdmin();
+  if (skipped.length) {
+    alert("成功导入 " + added + " 道菜。\n跳过 " + skipped.length + " 行：\n" + skipped.slice(0, 8).join("\n") + (skipped.length > 8 ? "\n…" : ""));
+  } else {
+    toast("成功导入 " + added + " 道菜 ✓");
+  }
+  return true;
+}
 $("importCsvFile").addEventListener("change", async e => {
   const f = e.target.files[0];
   if (!f) return;
-  const rd = new FileReader();
-  rd.onload = async () => {
-    try {
-      const rows = parseCsv(rd.result);
-      if (rows.length < 2) return toast("文件内容为空，请先填写菜品");
-      const header = rows[0].map(h => h.trim());
-      const idx = n => header.findIndex(h => h === n);
-      const iName = idx("菜名"), iEn = idx("英文名"), iPrice = idx("价格"), iCat = idx("分类"),
-            iDesc = idx("简介"), iImg = idx("图片"), iTags = idx("标签");
-      if (iName < 0 || iPrice < 0 || iCat < 0) return toast("模板格式不对，请下载最新模板");
-      const imgMap = {};
-      for (const f of csvPendingImgs) {
-        const dataUrl = await new Promise(res => {
-          const rd = new FileReader();
-          rd.onload = () => res(rd.result);
-          rd.onerror = () => res(null);
-          rd.readAsDataURL(f);
-        });
-        if (dataUrl) imgMap[f.name] = dataUrl;
-      }
-      const mode = $("importMode").value;
-      if (mode === "overwrite") {
-        if (!confirm("覆盖导入会清空当前全部菜品，确定继续吗？")) { e.target.value = ""; return; }
-        data.dishes = [];
-      }
-      const existing = new Set(data.dishes.map(d => d.name));
-      let added = 0; const skipped = [];
-      for (let r = 1; r < rows.length; r++) {
-        const c = rows[r];
-        const name = (c[iName] || "").trim();
-        if (!name) { skipped.push("第" + (r + 1) + "行：菜名为空"); continue; }
-        if (existing.has(name)) { skipped.push("第" + (r + 1) + "行：「" + name + "」已存在，跳过"); continue; }
-        const price = parseFloat(c[iPrice]);
-        if (isNaN(price) || price < 0) { skipped.push("第" + (r + 1) + "行：「" + name + "」价格无效"); continue; }
-        const cat = (c[iCat] || "其他").trim();
-        if (!data.categories.includes(cat)) data.categories.push(cat);
-        const tags = (c[iTags] || "").split(/[、|,，]/).map(t => t.trim()).filter(Boolean);
-        let img = iImg >= 0 ? (c[iImg] || "").trim() : "";
-        if (img) {
-          if (imgMap[img]) img = imgMap[img];
-          else if (!/^(images\/|data:|https?:)/.test(img)) img = "images/" + img;
-        }
-        const dish = {
-          id: nextId(),
-          name,
-          en: iEn >= 0 ? (c[iEn] || "").trim() : "",
-          price,
-          cat,
-          desc: iDesc >= 0 ? (c[iDesc] || "").trim() : "",
-          emoji: "🍽️",
-          tags
-        };
-        if (img) dish.img = img;
-        data.dishes.push(dish);
-        existing.add(name);
-        added++;
-      }
-      await saveData();
-      renderAllAdmin();
-      if (skipped.length) {
-        alert("成功导入 " + added + " 道菜。\n跳过 " + skipped.length + " 行：\n" + skipped.slice(0, 8).join("\n") + (skipped.length > 8 ? "\n…" : ""));
-      } else {
-        toast("成功导入 " + added + " 道菜 ✓");
-      }
-    } catch (err) {
-      toast("导入失败，请检查文件格式");
+  const isXlsx = /\.xlsx?$/i.test(f.name) || f.type.includes("excel") || f.type.includes("spreadsheet");
+  try {
+    if (isXlsx) {
+      if (typeof XLSX === "undefined") return toast("Excel 组件加载失败，请刷新重试");
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      await doImport(XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }));
+    } else {
+      const text = await f.text();
+      await doImport(parseCsv(text));
     }
-    e.target.value = "";
-  };
-  rd.readAsText(f);
+  } catch (err) {
+    toast("导入失败，请检查文件格式");
+  }
+  e.target.value = "";
 });
 
 /* ============ 数据管理 ============ */
@@ -1176,9 +1192,8 @@ $("dataExport").addEventListener("click", () => {
     rows.push(["订单号", "客户", "电话", "预订部门", "预订人", "日期", "时间", "人数", "菜品明细", "合计", "备注"]);
     list.forEach(x => rows.push([x.no, x.name, x.phone, x.dept || "", x.by || "", x.date, x.time, x.people, (x.items || []).map(i => i.name + "×" + i.qty).join("；"), x.total, x.note || ""]));
   }
-  const csv = rows.map(r => r.map(csvCell).join(",")).join("\r\n");
-  downloadTextFile((dataTab === "resv" ? "预订记录" : "订单记录") + ".csv", csv, "text/csv");
-  toast("已导出");
+  exportXlsx(rows, dataTab === "resv" ? "预订记录" : "订单记录");
+  toast("已导出 Excel");
 });
 $("dataClear").addEventListener("click", async () => {
   if (!currentList().length) return toast("暂无记录");

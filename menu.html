@@ -535,14 +535,15 @@ input,textarea,select{font-family:inherit}
       <p>您的预订菜单已确认，后厨即将备餐～</p>
       <div class="order-no" id="orderNo">#000000</div>
       <p>预计 <b id="eta">15-20</b> 分钟出餐</p>
-      <button class="csv-btn" id="exportCsv" type="button">导出明细 CSV</button>
+      <button class="csv-btn" id="exportCsv" type="button">导出明细 Excel</button>
       <br>
       <button class="again-btn" id="againBtn" type="button">继续点菜</button>
     </div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div><script>
+<div class="toast" id="toast"></div><script src="lib/xlsx.full.min.js"></script>
+<script>
 /* ============ 默认菜单（管理页没保存过时使用） ============ */
 const DEFAULT_MENU = [
   { id: 1,  name: "宫保鸡丁",   en: "Kung Pao Chicken",          desc: "鸡丁滑嫩、花生香脆，咸甜微辣很下饭", price: 28, cat: "热菜", emoji: "🍗", tags: ["招牌","辣"] },
@@ -583,6 +584,13 @@ let CATS = ["全部"];
 const state = { cart: {}, cat: "全部", keyword: "" };
 const $ = id => document.getElementById(id);
 const fmt = n => "¥" + n;
+function exportXlsx(rows, filename) {
+  if (typeof XLSX === "undefined") return toast("Excel 组件加载失败，请刷新重试");
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, "明细");
+  XLSX.writeFile(wb, filename + ".xlsx");
+}
 
 /* ============ Supabase 云端数据 ============ */
 const SUPABASE_URL = "https://lyjvwogbnnithedromac.supabase.co";
@@ -1005,16 +1013,8 @@ $("exportCsv").addEventListener("click", () => {
   rows.push([]);
   rows.push(["菜品", "单价", "数量", "小计"]);
   (o.items || []).forEach(it => rows.push([it.name, it.price, it.qty, it.price * it.qty]));
-  const csv = "\uFEFF" + rows.map(r => r.map(csvEsc).join(",")).join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "预订明细_" + o.no + ".csv";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  toast("已导出明细 CSV");
+  exportXlsx(rows, "预订明细_" + o.no);
+  toast("已导出明细 Excel");
 });
 $("againBtn").addEventListener("click", () => {
   $("checkoutForm").style.display = "";

@@ -274,7 +274,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
     <div class="l-sub">SMISS Restaurant · 管理端</div>
     <input id="loginPw" type="password" placeholder="请输入管理密码" autocomplete="off">
     <button class="l-btn" id="loginBtn" type="button">登 录</button>
-    <div class="l-hint" id="loginHint">默认密码：admin123（登录后请及时修改）</div>
+    
     <a class="l-back" href="index.html">← 返回客户端首页</a>
   </div>
 </div>
@@ -1323,7 +1323,7 @@ $("emTest").addEventListener("click", async () => {
 });
 
 /* ============ 管理端登录 ============ */
-const DEFAULT_PW = "admin123";
+const DEFAULT_PW = "123456";
 function getAdminPw() { try { return localStorage.getItem("swxc_admin_pw") || DEFAULT_PW; } catch (e) { return DEFAULT_PW; } }
 function isLoggedIn() {
   try { return sessionStorage.getItem("swxc_admin_in") === "1"; } catch (e) { return false; }
@@ -1361,7 +1361,6 @@ $("pwSave").addEventListener("click", () => {
   try { localStorage.setItem("swxc_admin_pw", n1); } catch (e) {}
   $("pwOld").value = ""; $("pwNew").value = ""; $("pwNew2").value = "";
   toast("密码已修改 ✓");
-  $("loginHint").style.display = getAdminPw() === DEFAULT_PW ? "" : "none";
 });
 function refreshLoginState() {
   if (isLoggedIn()) {
@@ -1369,7 +1368,6 @@ function refreshLoginState() {
   } else {
     $("loginView").style.display = "flex";
   }
-  $("loginHint").style.display = getAdminPw() === DEFAULT_PW ? "" : "none";
 }
 
 /* ============ 轻提示 ============ */

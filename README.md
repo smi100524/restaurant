@@ -42,6 +42,7 @@
 ## 技术说明
 
 - 纯 HTML / CSS / JavaScript，无构建步骤、无第三方框架
-- 数据存储：IndexedDB（菜单、预订、订单）+ localStorage（购物车、管理密码）
+- 数据存储：菜单、预订、订单存于 **Supabase 云数据库**（免费版），购物车与管理密码存于浏览器本地
+- 首次使用：在 Supabase 的 SQL Editor 运行 supabase-setup.sql 建表，页面会自动填充默认菜单
 - 邮件发送：EmailJS REST API（客户端直接调用）
 - 菜品图片：支持上传内嵌（data URL）或引用 `images/` 文件夹中的图片

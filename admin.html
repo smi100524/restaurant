@@ -292,7 +292,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
 
 <main class="wrap">
 
-  <div class="notice">修改会自动保存到<b>这台电脑的浏览器</b>里，刷新点菜页即可看到新菜单。换浏览器或清理浏览器数据会丢失，建议定期「导出备份」。</div>
+  <div class="notice">菜单、预订、订单已接入<b>Supabase 云端数据库</b>：管理端修改后全站实时同步，顾客订单实时汇总到「数据管理」。</div>
 
   <!-- 品类管理 -->
   <section class="panel">
@@ -340,7 +340,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
         <input id="dataDate" type="date">
         <button class="ghost" id="dataExport" type="button">导出 CSV</button>
         <button class="danger" id="dataClear" type="button">清空当前列表</button>
-        <span class="img-sel">数据保存在本机浏览器，请定期导出备份</span>
+        <span class="img-sel">数据已同步到云端（Supabase）</span>
       </div>
       <div class="data-table" id="dataTable"></div>
     </div>
@@ -579,6 +579,29 @@ function esc(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+/* ============ Supabase 云端数据 ============ */
+const SUPABASE_URL = "https://lyjvwogbnnithedromac.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5anZ3b2dibm5pdGhlZHJvbWFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxOTg3MTcsImV4cCI6MjEwMjc3NDcxN30.4_8pc4QORNsjO84gmjBvWGKpbg9AaT_z9nbRemBGyFU";
+async function sbFetch(path, options = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  let resp;
+  try {
+    resp = await fetch(SUPABASE_URL + "/rest/v1/" + path, {
+    ...options,
+    signal: ctrl.signal,
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": "Bearer " + SUPABASE_KEY,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  if (!resp.ok) throw new Error("supabase " + resp.status);
+  return resp.status === 204 ? null : resp.json();
+  } catch (e) { throw e; } finally { clearTimeout(timer); }
+}
+
 /* ============ 数据存取（与点菜页共用） ============ */
 const DB_NAME = "swxc_db", STORE = "kv";
 function idbOpen() {
@@ -619,25 +642,40 @@ function idbDelete(key) {
   });
 }
 async function loadData() {
+  let ok = false;
   try {
-    const saved = await idbGet("menu");
-    if (saved && Array.isArray(saved.dishes) && saved.dishes.length) {
-      data.dishes = saved.dishes;
-      data.dishes.forEach(d => { if (!d.en) { const m = DEFAULT_MENU.find(x => x.id === d.id); if (m && m.en) d.en = m.en; } });
-      data.categories = Array.isArray(saved.categories) ? saved.categories : [];
-    } else {
-      data.dishes = DEFAULT_MENU.slice();
-      data.categories = [...new Set(DEFAULT_MENU.map(d => d.cat))];
+    const rows = await sbFetch("menu?select=*&order=id");
+    if (Array.isArray(rows)) {
+      if (!rows.length) {
+        const seed = DEFAULT_MENU.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji, tags: d.tags || [], img: d.img || "" }));
+        await sbFetch("menu", { method: "POST", body: JSON.stringify(seed) });
+        rows.push(...seed);
+      }
+      data.dishes = rows.map(r => ({
+        id: r.id, name: r.name, en: r.en || "", price: +r.price, cat: r.cat,
+        desc: r.description || "", emoji: r.emoji || "🍽️",
+        tags: Array.isArray(r.tags) ? r.tags : [], img: r.img || ""
+      }));
+      data.categories = [...new Set(data.dishes.map(d => d.cat))];
+      ok = true;
     }
-  } catch (e) {
+  } catch (e) { ok = false; }
+  if (!ok) {
     data.dishes = DEFAULT_MENU.slice();
     data.categories = [...new Set(DEFAULT_MENU.map(d => d.cat))];
   }
   if (!data.categories.length) data.categories = [...new Set(data.dishes.map(d => d.cat))];
 }
 async function saveData() {
-  await idbSet("menu", { categories: data.categories, dishes: data.dishes });
-  toast("已保存 ✓");
+  try {
+    await sbFetch("menu?id=gt.0", { method: "DELETE" });
+    const rows = data.dishes.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji || "🍽️", tags: d.tags || [], img: d.img || "" }));
+    await sbFetch("menu", { method: "POST", body: JSON.stringify(rows) });
+    toast("已保存 ✓（已同步到云端）");
+  } catch (e) {
+    await idbSet("menu", { categories: data.categories, dishes: data.dishes });
+    toast("已保存（云端同步失败，已存本机）");
+  }
 }/* ============ 渲染 ============ */
 function renderCats() {
   $("catList").innerHTML = data.categories.map(c => {
@@ -889,7 +927,10 @@ $("importFile").addEventListener("change", e => {
 });
 $("resetBtn").addEventListener("click", async () => {
   if (!confirm("确定恢复默认菜单吗？\n管理页保存的所有修改（包括上传的图片）都会被清空。")) return;
-  await idbDelete("menu");
+  try {
+    await sbFetch("menu?id=gt.0", { method: "DELETE" });
+    await sbFetch("menu", { method: "POST", body: JSON.stringify(DEFAULT_MENU.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji, tags: d.tags || [], img: d.img || "" }))) });
+  } catch (e) {}
   await loadData();
   renderAllAdmin();
   toast("已恢复默认菜单");
@@ -1045,9 +1086,21 @@ $("importCsvFile").addEventListener("change", async e => {
 let resv = [], ords = [], dataTab = "resv", dataSearch = "", dataDate = "";
 async function loadDataAll() {
   try {
-    resv = (await idbGet("reservations")) || [];
-    ords = (await idbGet("orders")) || [];
-  } catch (e) { resv = []; ords = []; }
+    const r = await sbFetch("reservations?select=*&order=id");
+    resv = (Array.isArray(r) ? r : []).map(x => ({
+      id: x.id, name: x.name, phone: x.phone, dept: x.dept || "", by: x.booker || "",
+      date: x.book_date || "", time: x.book_time || "", people: x.people || 1,
+      note: x.note || "", ts: x.ts || 0
+    }));
+  } catch (e) { resv = []; }
+  try {
+    const o = await sbFetch("orders?select=*&order=id");
+    ords = (Array.isArray(o) ? o : []).map(x => ({
+      id: x.id, no: x.no, name: x.name, phone: x.phone, dept: x.dept || "", by: x.booker || "",
+      date: x.book_date || "", time: x.book_time || "", people: x.people || 1,
+      note: x.note || "", items: Array.isArray(x.items) ? x.items : [], total: +x.total || 0, ts: x.ts || 0
+    }));
+  } catch (e) { ords = []; }
 }
 function todayStr() {
   const d = new Date();
@@ -1131,7 +1184,11 @@ $("dataClear").addEventListener("click", async () => {
   if (!currentList().length) return toast("暂无记录");
   const label = dataTab === "resv" ? "预订记录" : "订单记录";
   if (!confirm("确定清空全部" + label + "吗？此操作不可恢复。")) return;
-  if (dataTab === "resv") { resv = []; await saveResv(); } else { ords = []; await saveOrds(); }
+  try {
+    if (dataTab === "resv") await sbFetch("reservations?id=gt.0", { method: "DELETE" });
+    else await sbFetch("orders?id=gt.0", { method: "DELETE" });
+  } catch (e) {}
+  await loadDataAll();
   renderDataAll();
   toast("已清空");
 });
@@ -1157,8 +1214,11 @@ $("dataTable").addEventListener("click", async e => {
     document.body.style.overflow = "hidden";
   } else if (act === "del") {
     if (!confirm("确定删除这条记录吗？")) return;
-    if (btn.dataset.type === "resv") { resv = resv.filter(x => x.id !== id); await saveResv(); }
-    else { ords = ords.filter(x => x.id !== id); await saveOrds(); }
+    try {
+      if (btn.dataset.type === "resv") await sbFetch("reservations?id=eq." + id, { method: "DELETE" });
+      else await sbFetch("orders?id=eq." + id, { method: "DELETE" });
+    } catch (e) {}
+    await loadDataAll();
     renderDataAll();
     toast("已删除");
   }

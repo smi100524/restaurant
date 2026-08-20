@@ -531,6 +531,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
 </div>
 
 <div class="toast" id="toast"></div><script src="lib/xlsx.full.min.js"></script>
+<script src="lib/exceljs.min.js"></script>
 <script>
 /* ============ 默认菜单（与点菜页一致） ============ */
 const DEFAULT_MENU = [
@@ -942,14 +943,39 @@ function csvCell(v) {
   v = String(v == null ? "" : v);
   return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
 }
-function exportXlsx(rows, filename) {
-  if (typeof XLSX === "undefined") return toast("Excel 组件加载失败，请刷新重试");
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "明细");
-  XLSX.writeFile(wb, filename + ".xlsx");
-}
-function downloadTextFile(name, content, type) {
+async function exportXlsx(rows, filename) {
+  if (typeof ExcelJS === "undefined") return toast("Excel 组件加载失败，请刷新重试");
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("明细");
+  const thin = { style: "thin", color: { argb: "FFBFBFBF" } };
+  const border = { top: thin, bottom: thin, left: thin, right: thin };
+  rows.forEach((rowArr, ri) => {
+    const row = ws.getRow(ri + 1);
+    rowArr.forEach((v, ci) => {
+      const cell = row.getCell(ci + 1);
+      cell.value = v;
+      if (ri === 0) {
+        cell.font = { name: "微软雅黑", size: 11, bold: true };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      } else {
+        cell.font = { name: "微软雅黑", size: 11 };
+        cell.alignment = { vertical: "middle" };
+      }
+      cell.border = border;
+    });
+  });
+  if (rows[0]) rows[0].forEach((_, ci) => { ws.getColumn(ci + 1).width = 16; });
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename + ".xlsx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}function downloadTextFile(name, content, type) {
   const blob = new Blob(["\uFEFF" + content], { type: type + ";charset=utf-8;" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);

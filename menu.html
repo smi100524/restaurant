@@ -542,7 +542,7 @@ input,textarea,select{font-family:inherit}
   </div>
 </div>
 
-<div class="toast" id="toast"></div><script src="lib/xlsx.full.min.js"></script>
+<div class="toast" id="toast"></div><script src="lib/exceljs.min.js"></script>
 <script>
 /* ============ 默认菜单（管理页没保存过时使用） ============ */
 const DEFAULT_MENU = [
@@ -584,16 +584,93 @@ let CATS = ["全部"];
 const state = { cart: {}, cat: "全部", keyword: "" };
 const $ = id => document.getElementById(id);
 const fmt = n => "¥" + n;
-function exportXlsx(rows, filename, opts = {}) {
-  if (typeof XLSX === "undefined") return toast("Excel 组件加载失败，请刷新重试");
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  if (opts.merges) ws["!merges"] = opts.merges;
-  if (opts.widths) ws["!cols"] = opts.widths.map(w => ({ wch: w }));
-  XLSX.utils.book_append_sheet(wb, ws, "包间菜单");
-  XLSX.writeFile(wb, filename + ".xlsx");
+async function exportBaojianXlsx(o) {
+  if (typeof ExcelJS === "undefined") return toast("Excel 组件加载失败，请刷新重试");
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("包间菜单");
+  ws.views = [{ showGridLines: false }];
+  const FONT = "微软雅黑";
+  const thin = { style: "thin", color: { argb: "FF7F7F7F" } };
+  const border = { top: thin, bottom: thin, left: thin, right: thin };
+  ws.getColumn(1).width = 9.13;
+  ws.getColumn(2).width = 9.75;
+  ws.getColumn(3).width = 25.13;
+  ws.getColumn(4).width = 21.25;
+  ws.getColumn(5).width = 23.75;
+  const r1 = ws.getRow(1); r1.height = 38;
+  const c1 = r1.getCell(1); c1.value = "包间菜单";
+  c1.font = { name: FONT, size: 18, bold: true };
+  c1.alignment = { horizontal: "center", vertical: "middle" };
+  ws.mergeCells("A1:E1");
+  const r2 = ws.getRow(2); r2.height = 33;
+  const c2 = r2.getCell(1);
+  c2.value = "用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + (o.dept || "____") + "，用餐人数：" + o.people;
+  c2.font = { name: FONT, size: 12, bold: true };
+  c2.alignment = { horizontal: "left", vertical: "middle" };
+  ws.mergeCells("A2:E2");
+  const r3 = ws.getRow(3); r3.height = 27;
+  ["序号", "菜类", "菜名", "单价(RMB:元/份)", "备注"].forEach((h, i) => {
+    const c = r3.getCell(i + 1);
+    c.value = h;
+    c.font = { name: FONT, size: 14, bold: true };
+    c.alignment = { horizontal: "center", vertical: "middle" };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
+    c.border = border;
+  });
+  const items = o.items || [];
+  let r = 4;
+  items.forEach((it, i) => {
+    const row = ws.getRow(r); row.height = 33;
+    const d = MENU.find(x => x.id === it.id);
+    const vals = [i + 1, d ? d.cat : "", it.name, it.price, it.qty > 1 ? "数量×" + it.qty : ""];
+    vals.forEach((v, j) => {
+      const cell = row.getCell(j + 1);
+      cell.value = v;
+      cell.font = { name: FONT, size: 12, bold: true };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = border;
+    });
+    r++;
+  });
+  const firstData = 4;
+  const lastData = r - 1;
+  if (items.length) {
+    let runStart = firstData;
+    for (let i = firstData + 1; i <= lastData + 1; i++) {
+      const cur = i <= lastData ? ws.getCell("B" + i).value : undefined;
+      const prev = ws.getCell("B" + (i - 1)).value;
+      if (cur !== prev) {
+        if (i - 1 > runStart) {
+          ws.mergeCells("B" + runStart + ":B" + (i - 1));
+          for (let rr = runStart; rr <= i - 1; rr++) ws.getCell("B" + rr).border = border;
+        }
+        runStart = i;
+      }
+    }
+  }
+  const rowT = ws.getRow(r); rowT.height = 32;
+  const label = rowT.getCell(1); label.value = "小计(RMB:元/桌)";
+  label.font = { name: FONT, size: 14, bold: true };
+  label.alignment = { horizontal: "center", vertical: "middle" };
+  label.border = border;
+  rowT.getCell(2).border = border;
+  rowT.getCell(3).border = border;
+  const totalC = rowT.getCell(4); totalC.value = o.total;
+  totalC.font = { name: FONT, size: 14, bold: true };
+  totalC.alignment = { horizontal: "center", vertical: "middle" };
+  totalC.border = border;
+  rowT.getCell(5).border = border;
+  ws.mergeCells("A" + r + ":C" + r);
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "包间菜单_" + o.no + ".xlsx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
-
 /* ============ Supabase 云端数据 ============ */
 const SUPABASE_URL = "https://lyjvwogbnnithedromac.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5anZ3b2dibm5pdGhlZHJvbWFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxOTg3MTcsImV4cCI6MjEwMjc3NDcxN30.4_8pc4QORNsjO84gmjBvWGKpbg9AaT_z9nbRemBGyFU";
@@ -996,27 +1073,7 @@ $("placeOrder").addEventListener("click", async () => {
 });
 $("exportCsv").addEventListener("click", () => {
   if (!lastOrder) return toast("暂无预订记录");
-  const o = lastOrder;
-  const rows = [];
-  rows.push(["包间菜单", "", "", "", ""]);
-  rows.push(["单号：" + o.no + "　客户：" + o.name + "　电话：" + (o.phone || ""), "", "", "", ""]);
-  rows.push(["用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + (o.dept || "____") + "，用餐人数：" + o.people, "", "", "", ""]);
-  rows.push(["序号", "菜类", "菜名", "单价(RMB:元/份)", "备注"]);
-  (o.items || []).forEach((it, i) => {
-    const d = MENU.find(x => x.id === it.id);
-    const cat = d ? d.cat : "";
-    const remark = it.qty > 1 ? "数量×" + it.qty : "";
-    rows.push([i + 1, cat, it.name, it.price, remark]);
-  });
-  rows.push(["小计(RMB:元/桌)", "", "", o.total, ""]);
-  exportXlsx(rows, "包间菜单_" + o.no, {
-    merges: [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
-      { s: { r: 2, c: 0 }, e: { r: 2, c: 4 } }
-    ],
-    widths: [8, 12, 24, 18, 14]
-  });
+  exportBaojianXlsx(lastOrder);
   toast("已导出包间菜单 Excel");
 });
 $("againBtn").addEventListener("click", () => {

@@ -532,10 +532,10 @@ input,textarea,select{font-family:inherit}
     <div class="success" id="successView" style="display:none">
       <div class="s-emoji">🎉</div>
       <h3>预订确认成功！</h3>
-      <p>您的预订菜单已确认，后厨即将备餐～</p>
+      
       <div class="order-no" id="orderNo">#000000</div>
-      <p>预计 <b id="eta">15-20</b> 分钟出餐</p>
-      <button class="csv-btn" id="exportCsv" type="button">导出包间菜单 Excel</button>
+      <p>请点击下方打印菜单确认</p>
+      <button class="csv-btn" id="exportCsv" type="button">打印菜单确认</button>
       <br>
       <button class="again-btn" id="againBtn" type="button">继续点菜</button>
     </div>
@@ -1065,7 +1065,7 @@ $("placeOrder").addEventListener("click", async () => {
   $("orderNo").textContent = "#" + orderNo;
   $("checkoutForm").style.display = "none";
   $("successView").style.display = "block";
-  $("eta").textContent = 12 + Math.floor(Math.random() * 9);
+
   const sent = await sendEmail({
     subject: "【赛尔美餐厅】新订单通知 " + order.no,
     message: "订单号：" + order.no + "\n客户：" + order.name + "\n联系电话：" + order.phone + "\n预订部门：" + (order.dept || "—") + "\n预订人：" + (order.by || "—") + "\n用餐日期：" + order.date + " " + order.time + "\n用餐人数：" + order.people + " 人\n备注：" + (order.note || "无") + "\n菜品：" + order.items.map(i => i.name + "×" + i.qty).join("、") + "\n合计：¥" + order.total,

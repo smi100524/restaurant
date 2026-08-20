@@ -55,6 +55,7 @@ input,textarea,select{font-family:inherit}
   letter-spacing:1px;transition:transform .15s;
 }
 .cart-btn:active{transform:scale(.96)}
+.cart-fab{position:fixed;top:14px;right:14px;z-index:70;box-shadow:var(--shadow)}
 .cart-badge{
   position:absolute;top:-7px;right:-7px;
   min-width:20px;height:20px;padding:0 5px;border-radius:999px;
@@ -421,16 +422,10 @@ input,textarea,select{font-family:inherit}
 </style>
 </head>
 <body>
+  <button class="cart-btn cart-fab" id="cartBtn" type="button">🛒<span class="lbl">预订菜单</span><span class="cart-badge" id="cartBadge">0</span></button>
 
-<header class="topbar">
-  <a class="brand" href="index.html"><img class="brand-logo" src="images/logo.png" alt="赛尔美"><b>赛尔美</b><span>SMISS</span></a>
-  <div class="top-actions">
-    <button class="cart-btn" id="cartBtn" type="button">🛒<span class="lbl">预订菜单</span><span class="cart-badge" id="cartBadge">0</span></button>
-  </div>
-</header>
 
 <section class="hero">
-  <div class="moon"></div>
   <svg class="mount" viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
     <path fill="#5f7f79" opacity=".09" d="M0,180 C180,120 260,220 430,155 C600,95 760,200 940,140 C1100,90 1260,175 1440,120 L1440,320 L0,320 Z"/>
     <path fill="#5f7f79" opacity=".06" d="M0,240 C160,195 320,260 520,205 C720,150 900,250 1120,200 C1280,155 1380,220 1440,190 L1440,320 L0,320 Z"/>

@@ -279,12 +279,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </div>
 </div>
 
-<header class="topbar">
-  <a class="brand" href="index.html"><img class="brand-logo" src="images/logo.png" alt="赛尔美"><b>赛尔美</b><span>SMISS</span></a>
-  <div class="top-actions">
-    <button class="admin-link" id="logoutBtn" type="button">退出</button>
-  </div>
-</header>
 
 <main class="wrap">
 
@@ -1347,7 +1341,6 @@ function logout() {
 }
 $("loginBtn").addEventListener("click", tryLogin);
 $("loginPw").addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
-$("logoutBtn").addEventListener("click", logout);
 $("logoutBtn2").addEventListener("click", logout);
 $("pwSave").addEventListener("click", () => {
   const old = $("pwOld").value;

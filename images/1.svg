@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb347"/>
+      <stop offset="1" stop-color="#d84315"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" rx="16" fill="url(#g)"/>
+  <text x="200" y="130" font-size="72" text-anchor="middle">🍗</text>
+  <text x="200" y="210" font-size="30" text-anchor="middle" fill="#fff" font-family="Microsoft YaHei">宫保鸡丁 · 示例图</text>
+  <text x="200" y="250" font-size="18" text-anchor="middle" fill="#ffe9d6" font-family="Microsoft YaHei">换成你自己的照片即可</text>
+</svg>

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>赛尔美餐厅 SMISS Restaurant · 首页</title>
+<style>
+:root{
+  --paper:#f5f0e4;
+  --ink:#2f3a34;
+  --sub:#7a8078;
+  --celadon:#5f7f79;
+  --celadon-deep:#4c6b65;
+  --cinnabar:#9e3b2c;
+  --gold:#b09a68;
+  --line:#ddd2ba;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:"SimSun","宋体","Songti SC","STSong","Noto Serif SC",serif;
+  background:var(--paper);color:var(--ink);line-height:1.8;
+}
+.poem{font-family:"Kaiti SC","KaiTi","楷体","STKaiti",serif}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit}
+/* ===== 顶栏 ===== */
+.topbar{
+  position:sticky;top:0;z-index:50;height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  background:rgba(245,240,228,.92);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:baseline;gap:8px;text-decoration:none;color:var(--ink)}
+.brand b{font-size:18px;letter-spacing:4px;font-weight:700}
+.brand span{font-size:12px;color:var(--celadon);letter-spacing:2px}
+nav{display:flex;gap:4px}
+nav a{
+  padding:6px 14px;font-size:14px;letter-spacing:2px;color:var(--sub);
+  text-decoration:none;border-bottom:2px solid transparent;transition:all .15s;
+}
+nav a:hover{color:var(--ink)}
+nav a.active{color:var(--ink);border-bottom-color:var(--celadon)}
+/* ===== Hero ===== */
+.hero{
+  position:relative;min-height:82vh;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  overflow:hidden;padding:80px 20px 110px;
+}
+.hero::before{
+  content:"";position:absolute;inset:0;
+  background-image:radial-gradient(rgba(47,58,52,.045) 1px,transparent 1.2px);
+  background-size:26px 26px;
+}
+.moon{
+  position:absolute;top:9%;right:13%;
+  width:110px;height:110px;border-radius:50%;
+  background:radial-gradient(circle at 38% 35%, rgba(248,244,232,.95), rgba(232,221,194,.4) 70%);
+  box-shadow:0 0 70px rgba(232,221,194,.55);opacity:.9;
+}
+.mount{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;pointer-events:none}
+.hero-inner{position:relative;z-index:2;max-width:840px;padding:0 20px}
+.kicker{font-size:13px;letter-spacing:9px;color:var(--gold);text-transform:uppercase;margin-bottom:20px}
+.title-row{display:flex;align-items:center;justify-content:center;gap:20px}
+.seal{
+  width:58px;height:58px;flex:0 0 auto;
+  background:var(--cinnabar);color:#f6efe0;
+  font-size:16px;letter-spacing:2px;line-height:1.4;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:6px;box-shadow:0 4px 10px rgba(158,59,44,.3);
+  border:1px solid rgba(246,239,224,.6);
+}
+h1.cn{
+  font-size:clamp(42px,8vw,70px);font-weight:700;
+  letter-spacing:14px;text-indent:14px;
+}
+.slogan{
+  margin-top:12px;
+  font-family:"Kaiti SC","KaiTi","楷体",serif;
+  font-size:clamp(16px,2.4vw,21px);
+  color:var(--celadon-deep);letter-spacing:3px;
+}
+.divider{display:flex;align-items:center;gap:14px;margin:28px auto;width:min(320px,70%)}
+.divider span{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold))}
+.divider span:last-child{background:linear-gradient(90deg,var(--gold),transparent)}
+.divider i{font-style:normal;color:var(--gold);font-size:9px}
+.verse{
+  font-family:"Kaiti SC","KaiTi","楷体",serif;
+  font-size:clamp(18px,2.6vw,24px);
+  letter-spacing:7px;color:var(--ink);
+}
+.verse.sub{
+  margin-top:8px;font-size:clamp(15px,2vw,18px);
+  color:var(--sub);letter-spacing:4px;
+}
+.book-btn{
+  margin-top:38px;display:inline-block;
+  background:var(--celadon);color:#f6f1e2;
+  font-size:16px;letter-spacing:6px;
+  padding:15px 46px;border-radius:6px;
+  box-shadow:0 8px 20px rgba(95,127,121,.35);
+  transition:all .2s ease;
+}
+.book-btn:hover{background:var(--celadon-deep);transform:translateY(-2px)}
+.book-btn.big{font-size:17px;padding:17px 58px}
+
+/* ===== 特色 ===== */
+.features{
+  max-width:980px;margin:0 auto;padding:20px 20px 70px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:22px;
+}
+.feat{
+  background:rgba(255,252,244,.6);border:1px solid var(--line);
+  border-top:2px solid var(--celadon);
+  padding:30px 24px;text-align:center;
+}
+.feat .t{font-size:18px;letter-spacing:4px;font-weight:700;margin-bottom:10px}
+.feat .t::before{content:"◆ ";font-size:9px;color:var(--gold);vertical-align:middle}
+.feat .d{font-size:13px;color:var(--sub);letter-spacing:1px}
+
+/* ===== 页脚 ===== */
+footer{text-align:center;padding:36px 20px 42px;color:var(--sub);font-size:13px;letter-spacing:2px;border-top:1px solid var(--line)}
+footer .fn{color:var(--ink);font-size:15px;letter-spacing:5px;margin-bottom:4px}
+footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
+/* ===== 预订弹窗 ===== */
+.modal{
+  position:fixed;inset:0;z-index:95;background:rgba(30,38,34,.5);
+  display:none;align-items:center;justify-content:center;padding:16px;
+}
+.modal.show{display:flex}
+.modal-card{
+  background:#fbf7ec;border-radius:10px;width:min(440px,100%);
+  max-height:90vh;overflow-y:auto;
+  border-top:4px double var(--gold);
+  box-shadow:0 20px 60px rgba(0,0,0,.35);
+  animation:rise .3s cubic-bezier(.2,.8,.25,1);
+}
+@keyframes rise{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+.modal-head{
+  padding:18px 22px 14px;border-bottom:1px solid var(--line);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.modal-head h3{font-size:17px;letter-spacing:4px;font-weight:700}
+.close-btn{font-size:20px;color:var(--sub);line-height:1}
+.modal-body{padding:18px 22px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12px;color:var(--sub);letter-spacing:1px;margin-bottom:5px}
+.field input{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:5px;
+  background:#fffdf6;font-size:14px;outline:none;
+}
+.field input:focus{border-color:var(--celadon);background:#fff}
+.field-row{display:flex;gap:12px}
+.field-row .field{flex:1}
+.modal-foot{padding:16px 22px 20px;border-top:1px solid var(--line);background:#f4ecda}
+.submit-btn{
+  width:100%;padding:13px;border-radius:6px;
+  background:var(--celadon);color:#f6f1e2;
+  font-size:15px;letter-spacing:6px;
+}
+.submit-btn:hover{background:var(--celadon-deep)}
+.success{text-align:center;padding:42px 26px}
+.success .s-emoji{font-size:52px}
+.success h3{font-size:20px;letter-spacing:4px;color:#4c6b65;margin:12px 0 8px}
+.success p{font-size:13px;color:var(--sub)}
+.r-list{
+  text-align:left;background:#f4ecda;border:1px solid var(--line);
+  border-radius:8px;padding:12px 18px;margin:18px 0 2px;
+}
+.r-list .row{
+  display:flex;justify-content:space-between;gap:14px;padding:6px 0;
+  font-size:13px;color:var(--sub);border-bottom:1px dashed rgba(176,154,104,.35);
+}
+.r-list .row:last-child{border-bottom:none}
+.r-list .row b{color:var(--ink);font-weight:400;text-align:right;word-break:break-all;max-width:60%}
+.confirm-ops{display:flex;gap:10px;margin-top:20px}
+.confirm-ops button{flex:1;padding:13px;border-radius:6px;font-size:15px;letter-spacing:4px}
+.confirm-ops .ghost{background:#fff;border:1px solid var(--line);color:var(--sub)}
+.confirm-ops .ghost:hover{color:var(--ink);border-color:var(--gold)}
+.confirm-ops .confirm-btn{background:var(--celadon);color:#f6f1e2}
+.confirm-ops .confirm-btn:hover{background:var(--celadon-deep)}
+.success .auto-hint{font-size:12px;color:var(--gold);letter-spacing:2px;margin-top:16px}
+.success .again{margin-top:18px;padding:12px 34px;border-radius:6px;background:var(--ink);color:#f4efe0;font-size:14px;letter-spacing:4px}
+.success .again:hover{background:#3c4a43}
+/* ===== Toast ===== */
+.toast{
+  position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-16px);
+  background:rgba(40,52,46,.94);color:#f4efe0;font-size:13px;
+  padding:10px 20px;border-radius:5px;z-index:120;
+  opacity:0;pointer-events:none;transition:all .25s ease;max-width:86vw;text-align:center;
+  letter-spacing:1px;border:1px solid rgba(176,154,104,.5);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (max-width:720px){
+  .topbar{padding:0 14px}
+  nav a{padding:6px 8px;font-size:12px;letter-spacing:1px}
+  .brand b{font-size:15px;letter-spacing:2px}
+  .brand span{font-size:10px}
+  .moon{width:64px;height:64px;top:6%;right:8%}
+  .hero{padding:56px 14px 78px}
+  .kicker{font-size:11px;letter-spacing:5px;margin-bottom:16px}
+  .seal{width:46px;height:46px;font-size:13px}
+  h1.cn{letter-spacing:6px;text-indent:6px}
+  .slogan{font-size:15px;letter-spacing:2px}
+  .verse{font-size:17px;letter-spacing:4px}
+  .verse.sub{font-size:14px;letter-spacing:2px}
+  .divider{margin:22px auto}
+  .book-btn{margin-top:30px;padding:14px 38px;font-size:15px;letter-spacing:5px}
+  .features{grid-template-columns:1fr;gap:14px;padding:8px 16px 44px}
+  .feat{padding:22px 18px}
+  .feat .t{font-size:17px}
+  footer{padding:30px 16px 36px}
+  .confirm-ops button{letter-spacing:2px}
+}
+</style>
+</head><body>
+
+<header class="topbar">
+  <a class="brand" href="index.html"><b>赛尔美</b><span>SMISS</span></a>
+  <nav>
+    <a href="index.html" class="active">首页</a>
+    <a href="menu.html">点菜</a>
+    <a href="admin.html">管理端</a>
+  </nav>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="moon"></div>
+  <svg class="mount" viewBox="0 0 1440 360" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <path fill="#5f7f79" opacity=".09" d="M0,220 C180,150 260,260 430,190 C600,120 760,240 940,170 C1100,110 1260,210 1440,150 L1440,360 L0,360 Z"/>
+    <path fill="#5f7f79" opacity=".06" d="M0,285 C160,235 320,305 520,245 C720,185 900,295 1120,235 C1280,185 1380,255 1440,225 L1440,360 L0,360 Z"/>
+    <path fill="#b09a68" opacity=".06" d="M0,325 C300,265 520,335 760,285 C980,245 1220,325 1440,275 L1440,360 L0,360 Z"/>
+  </svg>
+  <div class="hero-inner">
+    <div class="kicker">SMISS Restaurant</div>
+    <div class="title-row">
+      <span class="seal">如意</span>
+      <h1 class="cn">赛尔美餐厅</h1>
+    </div>
+    <div class="slogan">your life, we care!</div>
+    <div class="divider"><span></span><i>◆</i><span></span></div>
+    <p class="verse">一席烟火气，万般皆如意</p>
+    <p class="verse sub">诚邀品鉴 · 共赴食光</p>
+    <button class="book-btn" id="bookBtn" type="button">点击预订</button>
+  </div>
+
+</section>
+
+<!-- 特色 -->
+<section class="features">
+  <div class="feat">
+    <div class="t">以味传情</div>
+    <div class="d">时令鲜材 · 匠心烹调<br>每一道菜都是心意</div>
+  </div>
+  <div class="feat">
+    <div class="t">以境养心</div>
+    <div class="d">宋式雅境 · 静谧安然<br>让用餐回归从容</div>
+  </div>
+  <div class="feat">
+    <div class="t">以诚待客</div>
+    <div class="d">宾至如归 · 周到体贴<br>您的满意，我们的初心</div>
+  </div>
+</section>
+
+
+<footer>
+  <div class="fn">赛尔美餐厅</div>
+  <div class="en">SMISS Restaurant</div>
+
+</footer>
+
+<!-- 预订弹窗 -->
+<div class="modal" id="bookModal">
+  <div class="modal-card">
+    <form id="bookForm" novalidate>
+      <div class="modal-head">
+        <h3>预订席位</h3>
+        <button class="close-btn" id="closeBook" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field-row">
+          <div class="field">
+            <label>客户 *</label>
+            <input id="bName" type="text" placeholder="如：王女士" autocomplete="off">
+          </div>
+          <div class="field">
+            <label>联系电话 *</label>
+            <input id="bPhone" type="tel" placeholder="手机号" autocomplete="off">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>预订部门</label>
+            <input id="bDept" type="text" placeholder="如：市场部" autocomplete="off">
+          </div>
+          <div class="field">
+            <label>预订人</label>
+            <input id="bBy" type="text" placeholder="如：张经理" autocomplete="off">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>用餐日期 *</label>
+            <input id="bDate" type="date">
+          </div>
+          <div class="field">
+            <label>用餐时间 *</label>
+            <input id="bTime" type="time" value="18:30">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>用餐人数</label>
+            <input id="bPeople" type="number" min="1" max="50" value="2">
+          </div>
+          <div class="field">
+            <label>备注（选填）</label>
+            <input id="bNote" type="text" placeholder="如：靠窗、忌辣" autocomplete="off">
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="submit-btn" type="submit">下一步</button>
+      </div>
+    </form>
+    <div class="success" id="bookConfirm" style="display:none">
+      <div class="s-emoji">📋</div>
+      <h3>请确认预订信息</h3>
+      <div class="r-list" id="rList"></div>
+      <p class="auto-hint">请核对以上信息，确认后将进入点菜</p>
+      <div class="confirm-ops">
+        <button class="ghost" id="bookBack" type="button">返回修改</button>
+        <button class="confirm-btn" id="bookConfirmBtn" type="button">确认信息</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div><script>
+/* ============ 小工具 ============ */
+const $ = id => document.getElementById(id);
+
+/* ============ 预订数据保存（本机） ============ */
+const DB_NAME = "swxc_db", STORE = "kv";
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function idbGet(key) {
+  return new Promise((resolve, reject) => {
+    idbOpen().then(db => {
+      const r = db.transaction(STORE, "readonly").objectStore(STORE).get(key);
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    }).catch(reject);
+  });
+}
+function idbPut(key, val) {
+  return new Promise((resolve, reject) => {
+    idbOpen().then(db => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(val, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    }).catch(reject);
+  });
+}
+
+/* ============ 邮件通知 ============ */
+let emailCfg = { serviceId: "", templateId: "", publicKey: "", toEmail: "" };
+async function loadEmailCfg() {
+  try { const c = await idbGet("emailConfig"); if (c) emailCfg = Object.assign(emailCfg, c); } catch (e) {}
+}
+async function sendEmail(params) {
+  if (!emailCfg.serviceId || !emailCfg.templateId || !emailCfg.publicKey) return false;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        service_id: emailCfg.serviceId,
+        template_id: emailCfg.templateId,
+        user_id: emailCfg.publicKey,
+        template_params: Object.assign({ to_email: emailCfg.toEmail || "money477@qq.com" }, params)
+      })
+    });
+    clearTimeout(timer);
+    return resp.ok;
+  } catch (e) { clearTimeout(timer); return false; }
+}
+
+/* ============ 预订弹窗 ============ */
+const modal = $("bookModal"), form = $("bookForm"), confirmView = $("bookConfirm");
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function openBook() {
+  if (!$("bDate").value) $("bDate").value = todayStr();
+  modal.classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+function closeBook() {
+  modal.classList.remove("show");
+  document.body.style.overflow = "";
+}
+$("bookBtn").addEventListener("click", openBook);
+$("closeBook").addEventListener("click", closeBook);
+modal.addEventListener("click", e => { if (e.target === modal) closeBook(); });
+
+let pending = null;
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function readForm() {
+  return {
+    name: $("bName").value.trim(),
+    phone: $("bPhone").value.trim(),
+    dept: $("bDept").value.trim(),
+    by: $("bBy").value.trim(),
+    date: $("bDate").value,
+    time: $("bTime").value,
+    people: parseInt($("bPeople").value, 10) || 1,
+    note: $("bNote").value.trim()
+  };
+}
+function renderConfirm(r) {
+  const rows = [
+    ["客户", r.name],
+    ["联系电话", r.phone],
+    ["预订部门", r.dept || "—"],
+    ["预订人", r.by || "—"],
+    ["用餐日期", r.date],
+    ["用餐时间", r.time],
+    ["用餐人数", r.people + " 人"],
+    ["备注", r.note || "无"]
+  ];
+  $("rList").innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
+}
+form.addEventListener("submit", e => {
+  e.preventDefault();
+  const data = readForm();
+  if (!data.name) return toast("请填写客户名称");
+  if (!data.phone) return toast("请填写联系电话");
+  if (!data.date) return toast("请选择用餐日期");
+  if (!data.time) return toast("请选择用餐时间");
+  pending = data;
+  renderConfirm(data);
+  form.style.display = "none";
+  confirmView.style.display = "block";
+});
+$("bookBack").addEventListener("click", () => {
+  confirmView.style.display = "none";
+  form.style.display = "";
+});
+$("bookConfirmBtn").addEventListener("click", async () => {
+  if (!pending) return;
+  const rec = { id: Date.now(), ...pending, ts: Date.now() };
+  try {
+    const list = (await idbGet("reservations")) || [];
+    list.push(rec);
+    await idbPut("reservations", list);
+  } catch (err) { /* 保存失败不阻塞 */ }
+  await sendEmail({
+    subject: "【赛尔美餐厅】新预订通知",
+    message: "客户：" + rec.name + "\n联系电话：" + rec.phone + "\n预订部门：" + (rec.dept || "—") + "\n预订人：" + (rec.by || "—") + "\n用餐日期：" + rec.date + " " + rec.time + "\n用餐人数：" + rec.people + " 人\n备注：" + (rec.note || "无"),
+    customer: rec.name, phone: rec.phone, dept: rec.dept || "", booker: rec.by || "",
+    date: rec.date, time: rec.time, people: rec.people, note: rec.note || ""
+  });
+  window.location.href = "menu.html";
+});
+
+loadEmailCfg();
+
+/* ============ 轻提示 ============ */
+let toastTimer;
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+}
+</script>
+</body>
+</html>

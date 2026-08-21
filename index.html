@@ -20,6 +20,7 @@ html{scroll-behavior:smooth}
 body{
   font-family:"SimSun","宋体","Songti SC","STSong","Noto Serif SC",serif;
   background:var(--paper);color:var(--ink);line-height:1.8;
+  padding-bottom:76px;
 }
 .poem{font-family:"Kaiti SC","KaiTi","楷体","STKaiti",serif}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
@@ -109,6 +110,11 @@ h1.cn{
 }
 .book-btn:hover{background:var(--celadon-deep);transform:translateY(-2px)}
 .book-btn.big{font-size:17px;padding:17px 58px}
+
+/* ===== 底部悬浮预订 ===== */
+.book-float{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:14px 20px calc(14px + env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(245,240,228,.94) 55%)}
+.book-float-btn{pointer-events:auto;background:var(--celadon);color:#f6f1e2;font-size:16px;letter-spacing:6px;padding:13px 48px;border-radius:999px;border:1px solid rgba(255,255,255,.4);box-shadow:0 10px 26px rgba(47,58,52,.3);transition:all .2s}
+.book-float-btn:hover{background:var(--celadon-deep);transform:translateY(-2px)}
 
 /* ===== 特色 ===== */
 /* ===== 菜品展示 ===== */
@@ -252,7 +258,6 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
     <div class="divider"><span></span><i>◆</i><span></span></div>
     <p class="verse">一席烟火气，万般皆如意</p>
     <p class="verse sub">诚邀品鉴 · 共赴食光</p>
-    <button class="book-btn" id="bookBtn" type="button">点击预订</button>
   </div>
 
 </section>
@@ -285,6 +290,11 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
   </div>
 </section>
 
+
+<!-- 底部悬浮预订 -->
+<div class="book-float">
+  <button class="book-float-btn" id="bookBtn" type="button">点击预订</button>
+</div>
 
 <footer>
   <div class="fn">赛尔美餐厅</div>

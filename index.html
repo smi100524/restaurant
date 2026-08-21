@@ -426,32 +426,6 @@ async function sbFetch(path, options = {}) {
   } catch (e) { throw e; } finally { clearTimeout(timer); }
 }
 
-/* ============ 邮件通知 ============ */
-let emailCfg = { serviceId: "service_oy16t9k", templateId: "template_woszpok", publicKey: "-3Zj_cN0d03-uZoMt", toEmail: "money477@qq.com" };
-async function loadEmailCfg() {
-  try { const c = await idbGet("emailConfig"); if (c) emailCfg = Object.assign(emailCfg, c); } catch (e) {}
-}
-async function sendEmail(params) {
-  if (!emailCfg.serviceId || !emailCfg.templateId || !emailCfg.publicKey) return false;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
-  try {
-    const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        service_id: emailCfg.serviceId,
-        template_id: emailCfg.templateId,
-        user_id: emailCfg.publicKey,
-        template_params: Object.assign({ to_email: emailCfg.toEmail || "money477@qq.com" }, params)
-      })
-    });
-    clearTimeout(timer);
-    return resp.ok;
-  } catch (e) { clearTimeout(timer); return false; }
-}
-
 /* ============ 预订弹窗 ============ */
 const modal = $("bookModal"), form = $("bookForm"), confirmView = $("bookConfirm");
 function todayStr() {
@@ -535,16 +509,9 @@ $("bookConfirmBtn").addEventListener("click", async () => {
       await idbPut("reservations", list);
     } catch (err) { /* 保存失败不阻塞 */ }
   }
-  await sendEmail({
-    subject: "【赛尔美餐厅】新预订通知",
-    message: "客户：" + rec.name + "\n联系电话：" + rec.phone + "\n预订部门：" + (rec.dept || "—") + "\n预订人：" + (rec.by || "—") + "\n用餐日期：" + rec.date + " " + rec.time + "\n用餐人数：" + rec.people + " 人\n备注：" + (rec.note || "无"),
-    customer: rec.name, phone: rec.phone, dept: rec.dept || "", booker: rec.by || "",
-    date: rec.date, time: rec.time, people: rec.people, note: rec.note || ""
-  });
   window.location.href = "menu.html";
 });
 
-loadEmailCfg();
 
 /* ============ 轻提示 ============ */
 let toastTimer;

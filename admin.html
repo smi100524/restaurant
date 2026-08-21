@@ -1162,6 +1162,7 @@ function renderDataTable() {
         <div class="dsub">${esc(x.dept || "—")} · ${esc(x.by || "—")} · ${esc(x.date)} ${esc(x.time)} · ${x.people} 人 · 备注：${esc(x.note || "无")}</div>
       </div>
       <div class="dops">
+        <button data-act="view" data-type="resv" data-id="${x.id}" type="button">查看</button>
         <button class="del" data-act="del" data-type="resv" data-id="${x.id}" type="button">删除</button>
       </div>
     </div>`).join("");
@@ -1205,8 +1206,18 @@ $("dataExport").addEventListener("click", () => {
     rows.push(["客户", "电话", "预订部门", "预订人", "日期", "时间", "人数", "备注", "提交时间"]);
     list.forEach(x => rows.push([x.name, x.phone, x.dept || "", x.by || "", x.date, x.time, x.people, x.note || "", new Date(x.ts).toLocaleString("zh-CN")]));
   } else {
-    rows.push(["订单号", "客户", "电话", "预订部门", "预订人", "日期", "时间", "人数", "菜品明细", "合计", "备注"]);
-    list.forEach(x => rows.push([x.no, x.name, x.phone, x.dept || "", x.by || "", x.date, x.time, x.people, (x.items || []).map(i => i.name + "×" + i.qty).join("；"), x.total, x.note || ""]));
+    rows.push(["订单号", "客户", "电话", "预订部门", "预订人", "日期", "时间", "人数", "菜类", "菜名", "单价", "数量", "小计", "订单合计", "备注"]);
+    list.forEach(x => {
+      const items = x.items || [];
+      if (!items.length) {
+        rows.push([x.no, x.name, x.phone, x.dept || "", x.by || "", x.date, x.time, x.people, "", "", "", "", "", x.total, x.note || ""]);
+      } else {
+        items.forEach((it, idx) => {
+          const d = data.dishes.find(z => z.id === it.id);
+          rows.push([x.no, x.name, x.phone, x.dept || "", x.by || "", x.date, x.time, x.people, d ? d.cat : "", it.name, it.price, it.qty, it.price * it.qty, idx === 0 ? x.total : "", idx === 0 ? x.note || "" : ""]);
+        });
+      }
+    });
   }
   exportXlsx(rows, dataTab === "resv" ? "预订记录" : "订单记录");
   toast("已导出 Excel");
@@ -1228,19 +1239,27 @@ $("dataTable").addEventListener("click", async e => {
   if (!btn) return;
   const id = +btn.dataset.id, act = btn.dataset.act;
   if (act === "view") {
-    const o = ords.find(x => x.id === id);
+    const isResv = btn.dataset.type === "resv";
+    const o = isResv ? resv.find(x => x.id === id) : ords.find(x => x.id === id);
     if (!o) return;
-    const items = (o.items || []).map(i => `<div class="it"><span>${esc(i.name)} × ${i.qty}</span><b>¥${i.price * i.qty}</b></div>`).join("");
-    $("dataDetail").innerHTML = `
-      <div class="dl"><span>订单号</span><b>${esc(o.no)}</b></div>
+    let html = `
+      <div class="dl"><span>${isResv ? "客户" : "订单号"}</span><b>${esc(isResv ? o.name : o.no)}</b></div>
       <div class="dl"><span>客户</span><b>${esc(o.name)}</b></div>
       <div class="dl"><span>联系电话</span><b>${esc(o.phone || "—")}</b></div>
       <div class="dl"><span>预订部门</span><b>${esc(o.dept || "—")}</b></div>
       <div class="dl"><span>预订人</span><b>${esc(o.by || "—")}</b></div>
       <div class="dl"><span>用餐日期</span><b>${esc(o.date || "—")} ${esc(o.time || "")}</b></div>
       <div class="dl"><span>用餐人数</span><b>${o.people} 人</b></div>
-      <div class="dl"><span>备注</span><b>${esc(o.note || "无")}</b></div>
-      <div class="items">${items}<div class="it" style="border-top:1px dashed var(--line);margin-top:4px;padding-top:6px"><span>合计</span><b style="color:var(--cinnabar)">¥${o.total}</b></div></div>`;
+      <div class="dl"><span>备注</span><b>${esc(o.note || "无")}</b></div>`;
+    if (!isResv) {
+      const items = (o.items || []).map(i => {
+        const d = data.dishes.find(z => z.id === i.id);
+        const catTxt = d && d.cat ? esc(d.cat) + " · " : "";
+        return `<div class="it"><span>${catTxt}${esc(i.name)} × ${i.qty} <em style="font-style:normal;color:#8a8172">(¥${i.price}/份)</em></span><b>¥${i.price * i.qty}</b></div>`;
+      }).join("");
+      html += `<div class="items">${items}<div class="it" style="border-top:1px dashed var(--line);margin-top:4px;padding-top:6px"><span>合计</span><b style="color:var(--cinnabar)">¥${o.total}</b></div></div>`;
+    }
+    $("dataDetail").innerHTML = html;
     $("dataModal").classList.add("show");
     document.body.style.overflow = "hidden";
   } else if (act === "del") {

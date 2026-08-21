@@ -1148,6 +1148,25 @@ $("viewOrderClose").addEventListener("click", () => {
   renderAll();
 });
 
+$("exportCsv").addEventListener("click", async () => {
+  if (!lastOrder) { toast("暂无订单信息"); return; }
+  showExportOverlay("正在生成包间菜单…", "正在生成订单 " + lastOrder.no + " 的包间菜单，请稍候", false);
+  try {
+    const buf = await buildBaojianXlsx(lastOrder);
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "包间菜单_" + lastOrder.no + ".xlsx";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    showExportOverlay("✅ 包间菜单已生成", "文件已开始下载（包间菜单_" + lastOrder.no + ".xlsx），打开后可直接打印或发送。", true);
+  } catch (err) {
+    showExportOverlay("⚠️ 生成失败", "生成包间菜单失败，请稍后重试。", true);
+  }
+});
+
 /* ============ 轻提示 ============ */
 let toastTimer;
 function toast(msg) {

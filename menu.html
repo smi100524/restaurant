@@ -545,6 +545,8 @@ input,textarea,select{font-family:inherit}
       <button class="csv-btn" id="exportCsv" type="button">打印菜单确认</button>
       <br>
       <button class="again-btn" id="againBtn" type="button">查看预订菜单</button>
+      <br>
+      <button class="csv-btn" id="inviteBtn" type="button">生成邀请函</button>
     </div>
     <div class="success" id="viewOrderView" style="display:none">
       <div class="s-emoji">📋</div>
@@ -553,6 +555,23 @@ input,textarea,select{font-family:inherit}
       <div class="view-info" id="viewInfo"></div>
       <div class="view-items" id="viewItems"></div>
       <button class="again-btn" id="viewOrderClose" type="button">关 闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 邀请函弹窗 -->
+<div class="modal" id="inviteModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>电子邀请函</h3>
+      <button class="close-btn" id="closeInvite" type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <img id="inviteImg" alt="赛尔美餐厅邀请函" style="width:auto;max-width:min(420px,82vw);max-height:60vh;object-fit:contain;border-radius:8px;display:block;margin:0 auto">
+      <p style="text-align:center;font-size:13px;color:#7a7368;margin-top:10px">微信 / 飞书里长按图片即可保存，也可点下方按钮下载</p>
+      <div style="text-align:center;margin-top:14px">
+        <button class="submit-btn" id="inviteDownload" type="button">下载邀请函</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1167,6 +1186,144 @@ $("exportCsv").addEventListener("click", async () => {
   } catch (err) {
     showExportOverlay("⚠️ 生成失败", "生成包间菜单失败，请稍后重试。", true);
   }
+});
+
+/* ============ 电子邀请函（点菜完成后生成） ============ */
+function fmtDateCN(dateStr) {
+  if (!dateStr) return "";
+  const p = String(dateStr).split("-");
+  if (p.length < 3) return dateStr;
+  const d = new Date(+p[0], +p[1] - 1, +p[2]);
+  const wk = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+  return p[0] + "年" + p[1] + "月" + p[2] + "日 星期" + wk;
+}
+function wrapText(t, n) {
+  const res = [];
+  let s = String(t == null ? "" : t);
+  while (s.length > n) { res.push(s.slice(0, n)); s = s.slice(n); }
+  if (s) res.push(s);
+  return res.length ? res : [""];
+}
+function roundRect(ctx, x, y, w, h, r, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  if (stroke) ctx.stroke(); else ctx.fill();
+}
+function drawDivider(ctx, cx, y, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 190, y); ctx.lineTo(cx - 26, y);
+  ctx.moveTo(cx + 26, y); ctx.lineTo(cx + 190, y);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.font = "16px serif";
+  ctx.textAlign = "center";
+  ctx.fillText("◆", cx, y + 6);
+}
+function paintInvite(cv, ctx, W, H, o, logo) {
+  const paper = "#f5f0e4", ink = "#2f3a34", sub = "#7a8078", cinnabar = "#9e3b2c", gold = "#b09a68", labelC = "#8a674d", valC = "#333333";
+  ctx.fillStyle = paper;
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = gold;
+  ctx.lineWidth = 5;
+  ctx.strokeRect(38, 38, W - 76, H - 76);
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(62, 62, W - 124, H - 124);
+  let y = 205;
+  if (logo && logo.naturalWidth) {
+    const lh = 80, lw = logo.naturalWidth * lh / logo.naturalHeight;
+    if (lw <= 360) ctx.drawImage(logo, (W - lw) / 2, y - lh - 14, lw, lh);
+    else { const lw2 = 360, lh2 = 360 * logo.naturalHeight / logo.naturalWidth; ctx.drawImage(logo, (W - lw2) / 2, y - lh2 - 14, lw2, lh2); }
+  }
+  ctx.textAlign = "center";
+  ctx.fillStyle = gold;
+  ctx.font = "25px Arial, sans-serif";
+  ctx.fillText("S M I S S   R E S T A U R A N T", W / 2, y + 26);
+  ctx.fillStyle = ink;
+  ctx.font = "bold 62px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("赛尔美餐厅", W / 2, y + 122);
+  drawDivider(ctx, W / 2, y + 172, gold);
+  ctx.fillStyle = cinnabar;
+  ctx.font = "50px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("诚 挚 邀 请", W / 2, y + 252);
+  ctx.fillStyle = sub;
+  ctx.font = "28px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("诚邀您共赴这场食光之约", W / 2, y + 330);
+  const itemsStr = (o.items || []).map(i => i.name + "×" + i.qty).join("、");
+  const rows = [
+    ["订单号", o.no],
+    ["客户", o.name + "　" + (o.phone || "")],
+    ["预订部门", (o.dept || "—") + "　预订人：" + (o.by || "—")],
+    ["用餐时间", fmtDateCN(o.date) + " " + (o.time || "")],
+    ["用餐人数", o.people + " 人　地点：赛尔美餐厅 · 包间"],
+    ["菜品", itemsStr || "—"],
+    ["合计", "¥" + o.total],
+    ["备注", o.note || "—"]
+  ];
+  const boxX = 130, boxW = W - 260;
+  let totalH = 64;
+  rows.forEach(function (r) { totalH += wrapText(r[1], 18).length * 38 + 12; });
+  const boxH = Math.max(420, totalH + 18);
+  const boxY = y + 408;
+  ctx.fillStyle = "rgba(255,252,244,.82)";
+  roundRect(ctx, boxX, boxY, boxW, boxH, 18, false);
+  ctx.strokeStyle = "rgba(176,154,104,.6)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, boxX, boxY, boxW, boxH, 18, true);
+  let ry = boxY + 66;
+  rows.forEach(function (r) {
+    const label = r[0], value = r[1];
+    const lines = wrapText(value, 18);
+    ctx.textAlign = "right";
+    ctx.fillStyle = labelC;
+    ctx.font = "28px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+    ctx.fillText(label + "：", W / 2 - 30, ry);
+    ctx.textAlign = "left";
+    ctx.fillStyle = valC;
+    ctx.font = "29px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+    lines.forEach(function (ln, i) { ctx.fillText(ln, W / 2 + 30, ry + i * 38); });
+    ry += lines.length * 38 + 12;
+  });
+  ctx.textAlign = "center";
+  ctx.fillStyle = ink;
+  ctx.font = "38px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("一席烟火气，万般皆如意", W / 2, H - 200);
+  ctx.fillStyle = gold;
+  ctx.font = "26px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("诚邀品鉴 · 共赴食光", W / 2, H - 136);
+  const url = cv.toDataURL("image/png");
+  $("inviteImg").src = url;
+  window.__inviteUrl = url;
+  $("inviteModal").classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+function drawInvite(o) {
+  const W = 1080, H = 1620;
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+  const img = new Image();
+  img.onload = function () { paintInvite(cv, ctx, W, H, o, img); };
+  img.onerror = function () { paintInvite(cv, ctx, W, H, o, null); };
+  img.src = "images/logo.png";
+}
+$("inviteBtn").addEventListener("click", () => { if (lastOrder) drawInvite(lastOrder); else toast("暂无订单信息"); });
+$("closeInvite").addEventListener("click", () => { $("inviteModal").classList.remove("show"); document.body.style.overflow = ""; });
+$("inviteModal").addEventListener("click", e => { if (e.target === $("inviteModal")) { $("inviteModal").classList.remove("show"); document.body.style.overflow = ""; } });
+$("inviteDownload").addEventListener("click", () => {
+  if (!window.__inviteUrl) return;
+  const a = document.createElement("a");
+  a.href = window.__inviteUrl;
+  a.download = "赛尔美餐厅邀请函.png";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 });
 
 /* ============ 轻提示 ============ */

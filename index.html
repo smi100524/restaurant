@@ -573,18 +573,21 @@ $("bookConfirmBtn").addEventListener("click", async () => {
 
 loadEmailCfg();
 
-/* ============ 电子邀请函 ============ */
-function drawDivider(ctx, cx, y, color) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(cx - 180, y); ctx.lineTo(cx - 26, y);
-  ctx.moveTo(cx + 26, y); ctx.lineTo(cx + 180, y);
-  ctx.stroke();
-  ctx.fillStyle = color;
-  ctx.font = "16px serif";
-  ctx.textAlign = "center";
-  ctx.fillText("◆", cx, y + 6);
+/* ============ 电子邀请函（宴秘书风格） ============ */
+function fmtDateCN(dateStr) {
+  if (!dateStr) return "";
+  const p = String(dateStr).split("-");
+  if (p.length < 3) return dateStr;
+  const d = new Date(+p[0], +p[1] - 1, +p[2]);
+  const wk = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
+  return p[0] + "年" + p[1] + "月" + p[2] + "日 星期" + wk;
+}
+function mealPeriod(t) {
+  const h = parseInt(String(t || "18:00").split(":")[0], 10);
+  if (h < 11) return "早餐";
+  if (h < 14) return "午餐";
+  if (h < 17) return "下午茶";
+  return "晚餐";
 }
 function roundRect(ctx, x, y, w, h, r, stroke) {
   ctx.beginPath();
@@ -596,69 +599,91 @@ function roundRect(ctx, x, y, w, h, r, stroke) {
   ctx.closePath();
   if (stroke) ctx.stroke(); else ctx.fill();
 }
-function paintInvite(cv, ctx, W, H, rec, logo) {
-  const gold = "#b09a68", ink = "#2f3a34", sub = "#7a8078", cinnabar = "#9e3b2c";
-  ctx.fillStyle = "#f5f0e4";
-  ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = gold;
-  ctx.lineWidth = 5;
-  ctx.strokeRect(38, 38, W - 76, H - 76);
+function drawDivider(ctx, cx, y, color) {
+  ctx.strokeStyle = color;
   ctx.lineWidth = 1.5;
-  ctx.strokeRect(62, 62, W - 124, H - 124);
-  let y = 210;
-  if (logo && logo.naturalWidth) {
-    const lh = 84, lw = logo.naturalWidth * lh / logo.naturalHeight;
-    if (lw <= 380) ctx.drawImage(logo, (W - lw) / 2, y - lh - 16, lw, lh);
-    else { const lw2 = 380, lh2 = 380 * logo.naturalHeight / logo.naturalWidth; ctx.drawImage(logo, (W - lw2) / 2, y - lh2 - 16, lw2, lh2); }
+  ctx.beginPath();
+  ctx.moveTo(cx - 190, y); ctx.lineTo(cx - 26, y);
+  ctx.moveTo(cx + 26, y); ctx.lineTo(cx + 190, y);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.font = "16px serif";
+  ctx.textAlign = "center";
+  ctx.fillText("◆", cx, y + 6);
+}
+function drawPill(ctx, x, y, w, h, label, color, bg) {
+  ctx.fillStyle = bg;
+  roundRect(ctx, x, y, w, h, h / 2, false);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, w, h, h / 2, true);
+  ctx.fillStyle = color;
+  ctx.font = "bold 32px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.textAlign = "center";
+  ctx.fillText(label, x + w / 2, y + h / 2 + 11);
+}
+function paintInvite(cv, ctx, W, H, rec, headerImg) {
+  const cream = "#ffebcc", gold = "#f0c98a", brown = "#59301a", labelC = "#8a674d", valC = "#333333", grayBg = "#eeeeee", grayTxt = "#999999";
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, "#582c18");
+  g.addColorStop(1, "#330f08");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  const HDR = 950;
+  if (headerImg && headerImg.naturalWidth) {
+    const iw = headerImg.naturalWidth, ih = headerImg.naturalHeight;
+    const scale = Math.max(W / iw, HDR / ih);
+    const dw = iw * scale, dh = ih * scale;
+    ctx.drawImage(headerImg, (W - dw) / 2, (HDR - dh) / 2, dw, dh);
+    ctx.fillStyle = "rgba(30,12,4,.38)";
+    ctx.fillRect(0, 0, W, HDR);
+  } else {
+    ctx.fillStyle = "rgba(30,12,4,.55)";
+    ctx.fillRect(0, 0, W, HDR);
   }
   ctx.textAlign = "center";
+  ctx.fillStyle = cream;
+  ctx.font = "32px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("尊 敬 的 贵 宾，你 好 ！", W / 2, 190);
+  ctx.font = "38px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("诚邀您出席", W / 2, 265);
   ctx.fillStyle = gold;
-  ctx.font = "26px Arial, sans-serif";
-  ctx.fillText("S M I S S   R E S T A U R A N T", W / 2, y + 28);
-  ctx.fillStyle = ink;
-  ctx.font = "bold 64px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("赛尔美餐厅", W / 2, y + 122);
-  drawDivider(ctx, W / 2, y + 172, gold);
-  ctx.fillStyle = cinnabar;
-  ctx.font = "50px KaiTi, STKaiti, 楷体, serif";
-  ctx.fillText("诚 挚 邀 请", W / 2, y + 256);
-  ctx.fillStyle = sub;
-  ctx.font = "30px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("诚邀您共赴这场食光之约", W / 2, y + 336);
-  const boxY = y + 408, boxH = 468;
-  ctx.fillStyle = "rgba(255,252,244,.78)";
-  roundRect(ctx, 170, boxY, W - 340, boxH, 18, false);
-  ctx.strokeStyle = "rgba(176,154,104,.6)";
-  ctx.lineWidth = 2;
-  roundRect(ctx, 170, boxY, W - 340, boxH, 18, true);
+  ctx.font = "bold 60px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("【赛尔美餐厅】", W / 2, 370);
+  ctx.fillStyle = cream;
+  ctx.font = "42px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("用 餐 邀 请", W / 2, 450);
+  drawDivider(ctx, W / 2, 505, gold);
+  const dt = fmtDateCN(rec.date) + " " + mealPeriod(rec.time) + " " + (rec.time || "");
   const rows = [
-    ["客户", rec.name],
-    ["联系电话", rec.phone],
-    ["预订部门", rec.dept || "—"],
-    ["预订人", rec.by || "—"],
-    ["用餐时间", rec.date + " " + rec.time],
-    ["用餐人数", rec.people + " 人"],
-    ["用餐地点", "赛尔美餐厅 · 包间"],
-    ["备注", rec.note || "—"]
+    "就餐时间：" + dt,
+    "就餐位置：赛尔美餐厅 · 包间",
+    "就餐人数：" + rec.people + " 人",
+    "联系方式：" + rec.name + " " + rec.phone,
+    "预订人：" + (rec.by || "—") + (rec.dept ? "（" + rec.dept + "）" : ""),
+    "服务管家：赛尔美餐厅 · your life, we care!",
+    "备注：" + (rec.note || "—")
   ];
-  rows.forEach(function (r, i) {
-    const ry = boxY + 60 + i * 46;
-    ctx.textAlign = "right";
-    ctx.fillStyle = gold;
-    ctx.font = "28px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-    ctx.fillText(r[0] + "：", W / 2 - 14, ry);
-    ctx.textAlign = "left";
-    ctx.fillStyle = ink;
-    ctx.font = "30px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-    ctx.fillText(r[1], W / 2 + 14, ry);
+  ctx.font = "33px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  rows.forEach(function (txt, i) {
+    ctx.fillStyle = i === 0 ? gold : cream;
+    ctx.fillText(txt, W / 2, 610 + i * 56);
   });
-  ctx.textAlign = "center";
-  ctx.fillStyle = ink;
-  ctx.font = "38px KaiTi, STKaiti, 楷体, serif";
-  ctx.fillText("一席烟火气，万般皆如意", W / 2, H - 196);
+  const btnW = 300, btnH = 86, btnY = 1090;
+  drawPill(ctx, 110, btnY, btnW, btnH, "联系餐厅", brown, "#ffffff");
+  drawPill(ctx, W - 110 - btnW, btnY, btnW, btnH, "导航至餐厅", brown, "#ffffff");
+  const ay = btnY + btnH + 50, ah = 140;
+  ctx.fillStyle = grayBg;
+  roundRect(ctx, 60, ay, W - 120, ah, 18, false);
+  ctx.fillStyle = brown;
+  ctx.font = "bold 34px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("赛尔美餐厅（SMISS Restaurant）", W / 2, ay + 58);
+  ctx.fillStyle = grayTxt;
+  ctx.font = "27px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("一席烟火气，万般皆如意 · 诚邀品鉴", W / 2, ay + 104);
   ctx.fillStyle = gold;
-  ctx.font = "26px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("诚邀品鉴 · 共赴食光", W / 2, H - 132);
+  ctx.font = "30px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("—— SMISS · your life, we care! ——", W / 2, H - 60);
   const url = cv.toDataURL("image/png");
   $("inviteImg").src = url;
   window.__inviteUrl = url;
@@ -666,14 +691,14 @@ function paintInvite(cv, ctx, W, H, rec, logo) {
   document.body.style.overflow = "hidden";
 }
 function drawInvite(rec) {
-  const W = 1080, H = 1500;
+  const W = 1080, H = 1680;
   const cv = document.createElement("canvas");
   cv.width = W; cv.height = H;
   const ctx = cv.getContext("2d");
   const img = new Image();
   img.onload = function () { paintInvite(cv, ctx, W, H, rec, img); };
   img.onerror = function () { paintInvite(cv, ctx, W, H, rec, null); };
-  img.src = "images/logo.png";
+  img.src = "images/home-showcase.jpg";
 }
 $("bookMenuBtn").addEventListener("click", () => { window.location.href = "menu.html"; });
 $("inviteBtn").addEventListener("click", () => { if (pending) drawInvite(pending); });
@@ -688,7 +713,6 @@ $("inviteDownload").addEventListener("click", () => {
   a.click();
   a.remove();
 });
-
 /* ============ 轻提示 ============ */
 let toastTimer;
 function toast(msg) {

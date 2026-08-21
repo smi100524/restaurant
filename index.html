@@ -116,6 +116,18 @@ h1.cn{
 .book-float-btn{pointer-events:auto;background:var(--celadon);color:#f6f1e2;font-size:16px;letter-spacing:6px;padding:13px 48px;border-radius:999px;border:1px solid rgba(255,255,255,.4);box-shadow:0 10px 26px rgba(47,58,52,.3);transition:all .2s}
 .book-float-btn:hover{background:var(--celadon-deep);transform:translateY(-2px)}
 
+/* ===== 包间展示 ===== */
+.rooms{padding:20px 20px 46px;text-align:center}
+.rooms-title{font-family:"Kaiti SC","KaiTi","楷体",serif;font-size:21px;letter-spacing:8px;color:var(--ink);margin-bottom:6px}
+.rooms-sub{font-size:11px;letter-spacing:5px;color:var(--gold);text-transform:uppercase;margin-bottom:28px}
+.rooms-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,320px));gap:26px;justify-content:center}
+.room-card{margin:0;background:rgba(255,252,244,.6);border:1px solid var(--line);border-radius:12px;padding:12px 12px 18px;box-shadow:0 14px 36px rgba(47,58,52,.10)}
+.room-img{border-radius:8px;overflow:hidden;line-height:0}
+.room-img img{width:100%;height:auto;display:block;transition:transform .5s}
+.room-card:hover .room-img img{transform:scale(1.04)}
+.room-name{margin-top:14px;font-size:17px;font-weight:700;letter-spacing:4px;color:var(--ink)}
+.room-desc{margin-top:4px;font-size:12px;letter-spacing:2px;color:var(--sub)}
+
 /* ===== 特色 ===== */
 /* ===== 菜品展示 ===== */
 .showcase{padding:58px 20px 34px;text-align:center}
@@ -272,6 +284,24 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
     <div class="showcase-roll bottom"></div>
   </div>
   <p class="showcase-note">一席烟火气，万般皆如意 · <b>诚邀品鉴</b></p>
+</section>
+
+<!-- 包间展示 -->
+<section class="rooms">
+  <div class="rooms-title">雅 致 包 间</div>
+  <div class="rooms-sub">Private Rooms</div>
+  <div class="rooms-grid">
+    <figure class="room-card">
+      <div class="room-img"><img src="images/room-cn.jpg" alt="中式包间"></div>
+      <figcaption class="room-name">中式包间</figcaption>
+      <div class="room-desc">古韵雅致 · 静谧安然</div>
+    </figure>
+    <figure class="room-card">
+      <div class="room-img"><img src="images/room-west.jpg" alt="西式包间"></div>
+      <figcaption class="room-name">西式包间</figcaption>
+      <div class="room-desc">简约时尚 · 从容惬意</div>
+    </figure>
+  </div>
 </section>
 
 <!-- 特色 -->

@@ -366,6 +366,32 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
         <button class="confirm-btn" id="bookConfirmBtn" type="button">确认信息</button>
       </div>
     </div>
+    <div class="success" id="bookSuccess" style="display:none">
+      <div class="s-emoji">🎉</div>
+      <h3>预订成功！</h3>
+      <p class="auto-hint">您的席位已确认，可生成电子邀请函发给宾客</p>
+      <div class="confirm-ops">
+        <button class="ghost" id="bookMenuBtn" type="button">去点菜</button>
+        <button class="confirm-btn" id="inviteBtn" type="button">生成邀请函</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 邀请函弹窗 -->
+<div class="modal" id="inviteModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>电子邀请函</h3>
+      <button class="close-btn" id="closeInvite" type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="modal-body">
+      <img id="inviteImg" alt="赛尔美餐厅邀请函" style="width:auto;max-width:min(420px,82vw);max-height:60vh;object-fit:contain;border-radius:8px;display:block;margin:0 auto">
+      <p class="auto-hint" style="text-align:center;margin-top:10px">微信 / 飞书里可长按图片保存，也可点下方按钮下载</p>
+      <div class="confirm-ops" style="margin-top:12px">
+        <button class="confirm-btn" id="inviteDownload" type="button">下载邀请函</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -541,10 +567,127 @@ $("bookConfirmBtn").addEventListener("click", async () => {
     customer: rec.name, phone: rec.phone, dept: rec.dept || "", booker: rec.by || "",
     date: rec.date, time: rec.time, people: rec.people, note: rec.note || ""
   });
-  window.location.href = "menu.html";
+  confirmView.style.display = "none";
+  $("bookSuccess").style.display = "block";
 });
 
 loadEmailCfg();
+
+/* ============ 电子邀请函 ============ */
+function drawDivider(ctx, cx, y, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 180, y); ctx.lineTo(cx - 26, y);
+  ctx.moveTo(cx + 26, y); ctx.lineTo(cx + 180, y);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.font = "16px serif";
+  ctx.textAlign = "center";
+  ctx.fillText("◆", cx, y + 6);
+}
+function roundRect(ctx, x, y, w, h, r, stroke) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+  if (stroke) ctx.stroke(); else ctx.fill();
+}
+function paintInvite(cv, ctx, W, H, rec, logo) {
+  const gold = "#b09a68", ink = "#2f3a34", sub = "#7a8078", cinnabar = "#9e3b2c";
+  ctx.fillStyle = "#f5f0e4";
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = gold;
+  ctx.lineWidth = 5;
+  ctx.strokeRect(38, 38, W - 76, H - 76);
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(62, 62, W - 124, H - 124);
+  let y = 210;
+  if (logo && logo.naturalWidth) {
+    const lh = 84, lw = logo.naturalWidth * lh / logo.naturalHeight;
+    if (lw <= 380) ctx.drawImage(logo, (W - lw) / 2, y - lh - 16, lw, lh);
+    else { const lw2 = 380, lh2 = 380 * logo.naturalHeight / logo.naturalWidth; ctx.drawImage(logo, (W - lw2) / 2, y - lh2 - 16, lw2, lh2); }
+  }
+  ctx.textAlign = "center";
+  ctx.fillStyle = gold;
+  ctx.font = "26px Arial, sans-serif";
+  ctx.fillText("S M I S S   R E S T A U R A N T", W / 2, y + 28);
+  ctx.fillStyle = ink;
+  ctx.font = "bold 64px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("赛尔美餐厅", W / 2, y + 122);
+  drawDivider(ctx, W / 2, y + 172, gold);
+  ctx.fillStyle = cinnabar;
+  ctx.font = "50px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("诚 挚 邀 请", W / 2, y + 256);
+  ctx.fillStyle = sub;
+  ctx.font = "30px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("诚邀您共赴这场食光之约", W / 2, y + 336);
+  const boxY = y + 408, boxH = 468;
+  ctx.fillStyle = "rgba(255,252,244,.78)";
+  roundRect(ctx, 170, boxY, W - 340, boxH, 18, false);
+  ctx.strokeStyle = "rgba(176,154,104,.6)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, 170, boxY, W - 340, boxH, 18, true);
+  const rows = [
+    ["客户", rec.name],
+    ["联系电话", rec.phone],
+    ["预订部门", rec.dept || "—"],
+    ["预订人", rec.by || "—"],
+    ["用餐时间", rec.date + " " + rec.time],
+    ["用餐人数", rec.people + " 人"],
+    ["用餐地点", "赛尔美餐厅 · 包间"],
+    ["备注", rec.note || "—"]
+  ];
+  rows.forEach(function (r, i) {
+    const ry = boxY + 60 + i * 46;
+    ctx.textAlign = "right";
+    ctx.fillStyle = gold;
+    ctx.font = "28px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+    ctx.fillText(r[0] + "：", W / 2 - 14, ry);
+    ctx.textAlign = "left";
+    ctx.fillStyle = ink;
+    ctx.font = "30px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+    ctx.fillText(r[1], W / 2 + 14, ry);
+  });
+  ctx.textAlign = "center";
+  ctx.fillStyle = ink;
+  ctx.font = "38px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("一席烟火气，万般皆如意", W / 2, H - 196);
+  ctx.fillStyle = gold;
+  ctx.font = "26px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("诚邀品鉴 · 共赴食光", W / 2, H - 132);
+  const url = cv.toDataURL("image/png");
+  $("inviteImg").src = url;
+  window.__inviteUrl = url;
+  $("inviteModal").classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+function drawInvite(rec) {
+  const W = 1080, H = 1500;
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+  const img = new Image();
+  img.onload = function () { paintInvite(cv, ctx, W, H, rec, img); };
+  img.onerror = function () { paintInvite(cv, ctx, W, H, rec, null); };
+  img.src = "images/logo.png";
+}
+$("bookMenuBtn").addEventListener("click", () => { window.location.href = "menu.html"; });
+$("inviteBtn").addEventListener("click", () => { if (pending) drawInvite(pending); });
+$("closeInvite").addEventListener("click", () => { $("inviteModal").classList.remove("show"); document.body.style.overflow = ""; });
+$("inviteModal").addEventListener("click", e => { if (e.target === $("inviteModal")) { $("inviteModal").classList.remove("show"); document.body.style.overflow = ""; } });
+$("inviteDownload").addEventListener("click", () => {
+  if (!window.__inviteUrl) return;
+  const a = document.createElement("a");
+  a.href = window.__inviteUrl;
+  a.download = "赛尔美餐厅邀请函.png";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+});
 
 /* ============ 轻提示 ============ */
 let toastTimer;

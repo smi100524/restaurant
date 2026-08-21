@@ -1284,9 +1284,9 @@ async function loadEmailForm() {
   let c = {};
   try { c = (await idbGet("emailConfig")) || {}; } catch (e) {}
   $("emTo").value = c.toEmail || "money477@qq.com";
-  $("emService").value = c.serviceId || "";
-  $("emTemplate").value = c.templateId || "";
-  $("emKey").value = c.publicKey || "";
+  $("emService").value = c.serviceId || "service_xj6gh39";
+  $("emTemplate").value = c.templateId || "template_woszpok";
+  $("emKey").value = c.publicKey || "-3Zj_cN0d03-uZoMt";
 }
 function readEmailForm() {
   return {

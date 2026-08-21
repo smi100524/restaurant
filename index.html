@@ -394,7 +394,7 @@ async function sbFetch(path, options = {}) {
 }
 
 /* ============ 邮件通知 ============ */
-let emailCfg = { serviceId: "", templateId: "", publicKey: "", toEmail: "" };
+let emailCfg = { serviceId: "service_xj6gh39", templateId: "template_woszpok", publicKey: "-3Zj_cN0d03-uZoMt", toEmail: "money477@qq.com" };
 async function loadEmailCfg() {
   try { const c = await idbGet("emailConfig"); if (c) emailCfg = Object.assign(emailCfg, c); } catch (e) {}
 }

@@ -566,12 +566,15 @@ input,textarea,select{font-family:inherit}
 .export-dl:hover{background:#3a7263}
 .export-close{background:#2f5d50;color:#fff;border:none;border-radius:8px;padding:10px 26px;font-size:15px;cursor:pointer}
 .export-close:hover{background:#3a7263}
+.export-copy{background:#fff;color:#2f5d50;border:1px solid #2f5d50;border-radius:8px;padding:10px 26px;font-size:15px;font-weight:700;cursor:pointer;margin:0 6px 10px}
+.export-copy:hover{background:#f4efe4}
 </style>
 <div class="export-overlay" id="exportOverlay" style="display:none">
   <div class="export-card">
     <div class="export-title" id="exportTitle">正在生成包间菜单…</div>
     <div class="export-sub" id="exportSub"></div>
     <a class="export-dl" id="exportDl" href="#" download style="display:none">📥 点击下载</a>
+    <button class="export-copy" id="exportCopy" type="button" style="display:none">复制链接</button>
     <button class="export-close" id="exportClose" type="button" style="display:none">知道了</button>
   </div>
 </div>
@@ -1153,6 +1156,10 @@ $("viewOrderClose").addEventListener("click", () => {
 
 $("exportCsv").addEventListener("click", async () => {
   if (!lastOrder) { toast("暂无订单信息"); return; }
+  if (isInAppBrowser()) {
+    showInAppTip(location.origin + location.pathname + "?export=" + encodeURIComponent(lastOrder.no));
+    return;
+  }
   showExportOverlay("正在生成包间菜单…", "正在生成订单 " + lastOrder.no + " 的包间菜单，请稍候", false);
   try {
     await buildBaojianXlsxFile(lastOrder);
@@ -1177,11 +1184,43 @@ function saveCart() { try { localStorage.setItem("swxc_cart", JSON.stringify(sta
 function loadCart() { try { const s = localStorage.getItem("swxc_cart"); if (s) state.cart = JSON.parse(s) || {}; } catch (e) {} }
 
 /* ============ 邮件下载链接 / 打印菜单：生成并下载包间菜单 ============ */
-let exportBlobUrl = "", exportFileName = "";
+let exportBlobUrl = "", exportFileName = "", exportCopyUrl = "";
+function isInAppBrowser() {
+  const ua = (navigator.userAgent || "").toLowerCase();
+  return ua.indexOf("micromessenger") !== -1 || ua.indexOf("lark") !== -1 || ua.indexOf("feishu") !== -1;
+}
+function fallbackCopy(txt) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = txt;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+    toast("✅ 链接已复制，去浏览器粘贴打开即可");
+  } catch (e) { toast("复制失败，请长按提示里的链接手动复制"); }
+}
+function copyText(txt) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(() => toast("✅ 链接已复制，去浏览器粘贴打开即可")).catch(() => fallbackCopy(txt));
+  } else fallbackCopy(txt);
+}
+function showInAppTip(url) {
+  exportCopyUrl = url || "";
+  $("exportTitle").textContent = "请在浏览器中打开";
+  $("exportSub").innerHTML = "微信 / 飞书内置浏览器无法直接下载文件。<br><br>请点右上角「···」→「在浏览器中打开」，<br>或点下方「复制链接」，粘贴到手机浏览器（Safari / Chrome）打开，即可下载包间菜单。";
+  $("exportDl").style.display = "none";
+  $("exportCopy").style.display = "";
+  $("exportOverlay").style.display = "flex";
+  $("exportClose").style.display = "";
+}
 function showExportOverlay(title, sub, withClose) {
   $("exportTitle").textContent = title;
   $("exportSub").textContent = sub || "";
   $("exportDl").style.display = "none";
+  $("exportCopy").style.display = "none";
   $("exportOverlay").style.display = "flex";
   $("exportClose").style.display = withClose ? "" : "none";
 }
@@ -1199,6 +1238,7 @@ function hideExportOverlay() {
   if (exportBlobUrl) { try { URL.revokeObjectURL(exportBlobUrl); } catch (e) {} exportBlobUrl = ""; }
 }
 $("exportClose").addEventListener("click", hideExportOverlay);
+$("exportCopy").addEventListener("click", () => { if (exportCopyUrl) copyText(exportCopyUrl); });
 async function buildBaojianXlsxFile(o) {
   const buf = await buildBaojianXlsx(o);
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -1215,6 +1255,10 @@ async function buildBaojianXlsxFile(o) {
 async function handleExportLink() {
   const no = new URLSearchParams(location.search).get("export");
   if (!no) return;
+  if (isInAppBrowser()) {
+    showInAppTip(location.href.split("#")[0]);
+    return;
+  }
   showExportOverlay("正在生成包间菜单…", "正在读取订单 " + no + " 的数据，请稍候", false);
   try {
     const list = await sbFetch("orders?no=eq." + encodeURIComponent(no) + "&select=*");

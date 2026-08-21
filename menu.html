@@ -803,7 +803,12 @@ async function sendEmail(params) {
       user_id: emailCfg.publicKey,
       template_params: Object.assign({ to_email: emailCfg.toEmail || "money477@qq.com" }, rest)
     };
-    if (attachments && attachments.length) payload.attachments = attachments;
+    if (attachments && attachments.length) {
+      const att = attachments[0];
+      payload.template_params.menu_xlsx = att.data;
+      payload.template_params.menu_xlsx_name = att.name;
+      payload.template_params.menu_xlsx_type = att.type;
+    }
     const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

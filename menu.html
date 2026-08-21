@@ -562,6 +562,8 @@ input,textarea,select{font-family:inherit}
 .export-card{background:#fffdf7;border:1px solid #d8d2c4;border-radius:12px;max-width:420px;width:100%;padding:26px 24px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.18)}
 .export-title{font-size:19px;font-weight:700;color:#2f5d50;margin-bottom:10px}
 .export-sub{font-size:14px;color:#7a7368;line-height:1.7;margin-bottom:18px;word-break:break-all}
+.export-dl{display:inline-block;background:#2f5d50;color:#fff;text-decoration:none;border-radius:8px;padding:12px 30px;font-size:15px;font-weight:700;cursor:pointer;margin:0 6px 10px}
+.export-dl:hover{background:#3a7263}
 .export-close{background:#2f5d50;color:#fff;border:none;border-radius:8px;padding:10px 26px;font-size:15px;cursor:pointer}
 .export-close:hover{background:#3a7263}
 </style>
@@ -569,6 +571,7 @@ input,textarea,select{font-family:inherit}
   <div class="export-card">
     <div class="export-title" id="exportTitle">正在生成包间菜单…</div>
     <div class="export-sub" id="exportSub"></div>
+    <a class="export-dl" id="exportDl" href="#" download style="display:none">📥 点击下载</a>
     <button class="export-close" id="exportClose" type="button" style="display:none">知道了</button>
   </div>
 </div>
@@ -1152,16 +1155,8 @@ $("exportCsv").addEventListener("click", async () => {
   if (!lastOrder) { toast("暂无订单信息"); return; }
   showExportOverlay("正在生成包间菜单…", "正在生成订单 " + lastOrder.no + " 的包间菜单，请稍候", false);
   try {
-    const buf = await buildBaojianXlsx(lastOrder);
-    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "包间菜单_" + lastOrder.no + ".xlsx";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    showExportOverlay("✅ 包间菜单已生成", "文件已开始下载（包间菜单_" + lastOrder.no + ".xlsx），打开后可直接打印或发送。", true);
+    await buildBaojianXlsxFile(lastOrder);
+    showExportDone();
   } catch (err) {
     showExportOverlay("⚠️ 生成失败", "生成包间菜单失败，请稍后重试。", true);
   }
@@ -1181,15 +1176,42 @@ function toast(msg) {
 function saveCart() { try { localStorage.setItem("swxc_cart", JSON.stringify(state.cart)); } catch (e) {} }
 function loadCart() { try { const s = localStorage.getItem("swxc_cart"); if (s) state.cart = JSON.parse(s) || {}; } catch (e) {} }
 
-/* ============ 邮件下载链接：自动生成包间菜单 ============ */
+/* ============ 邮件下载链接 / 打印菜单：生成并下载包间菜单 ============ */
+let exportBlobUrl = "", exportFileName = "";
 function showExportOverlay(title, sub, withClose) {
   $("exportTitle").textContent = title;
   $("exportSub").textContent = sub || "";
+  $("exportDl").style.display = "none";
   $("exportOverlay").style.display = "flex";
   $("exportClose").style.display = withClose ? "" : "none";
 }
-function hideExportOverlay() { $("exportOverlay").style.display = "none"; }
+function showExportDone() {
+  $("exportTitle").textContent = "✅ 包间菜单已生成";
+  $("exportSub").textContent = "文件：" + exportFileName + "。手机未自动下载时，请点下方按钮下载。";
+  $("exportDl").href = exportBlobUrl;
+  $("exportDl").download = exportFileName;
+  $("exportDl").style.display = "inline-block";
+  $("exportOverlay").style.display = "flex";
+  $("exportClose").style.display = "";
+}
+function hideExportOverlay() {
+  $("exportOverlay").style.display = "none";
+  if (exportBlobUrl) { try { URL.revokeObjectURL(exportBlobUrl); } catch (e) {} exportBlobUrl = ""; }
+}
 $("exportClose").addEventListener("click", hideExportOverlay);
+async function buildBaojianXlsxFile(o) {
+  const buf = await buildBaojianXlsx(o);
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  exportFileName = "包间菜单_" + o.no + ".xlsx";
+  if (exportBlobUrl) { try { URL.revokeObjectURL(exportBlobUrl); } catch (e) {} }
+  exportBlobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = exportBlobUrl;
+  a.download = exportFileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 async function handleExportLink() {
   const no = new URLSearchParams(location.search).get("export");
   if (!no) return;
@@ -1203,16 +1225,8 @@ async function handleExportLink() {
       by: rec.booker || "", date: rec.book_date || "", time: rec.book_time || "",
       people: rec.people || 1, note: rec.note || "", items: rec.items || [], total: rec.total || 0
     };
-    const buf = await buildBaojianXlsx(o);
-    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "包间菜单_" + o.no + ".xlsx";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    showExportOverlay("✅ 包间菜单已生成", "文件已开始下载（包间菜单_" + o.no + ".xlsx）。若未弹出下载，请检查浏览器下载设置。", true);
+    await buildBaojianXlsxFile(o);
+    showExportDone();
   } catch (err) {
     showExportOverlay("⚠️ 生成失败", "未找到订单 " + no + "，请核对链接是否正确，或稍后重试。", true);
   }

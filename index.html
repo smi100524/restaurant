@@ -303,7 +303,7 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
 <section class="rooms">
   <div class="rooms-title">雅 致 包 间</div>
   <div class="rooms-sub">Private Rooms</div>
-  <div class="rooms-grid">
+  <div class="rooms-grid" id="roomsGrid">
     <figure class="room-card">
       <div class="room-img"><img src="images/room-west.jpg" alt="西式包间"></div>
       <figcaption class="room-name">西式包间</figcaption>
@@ -321,7 +321,7 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
   <div class="showcase-sub">Signature Dishes</div>
   <div class="showcase-frame">
     <div class="showcase-roll"></div>
-    <div class="dish-cards">
+    <div class="dish-cards" id="dishCards">
       <div class="dish-card"><img src="images/dish-1.jpg?v=3" alt="">
         <div class="dish-name"><div class="cn">云雾清蒸鲈鱼</div><div class="en">Cloud-Steamed Sea Bass</div></div>
       </div>
@@ -421,6 +421,34 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
 }
+
+/* ============ 首页内容（包间/菜品，管理端可改） ============ */
+function escHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+async function loadHomeContent() {
+  let rows = null;
+  try { rows = await sbFetch("home_cards?select=*&order=sort"); } catch (e) { rows = null; }
+  if (!Array.isArray(rows) || !rows.length) return;
+  const rooms = rows.filter(r => r.type === "room");
+  const dishes = rows.filter(r => r.type === "dish");
+  const grid = $("roomsGrid");
+  if (grid && rooms.length) {
+    grid.innerHTML = rooms.map(r => `
+      <figure class="room-card">
+        <div class="room-img"><img src="${escHtml(r.image)}" alt="${escHtml(r.name_cn)}"></div>
+        <figcaption class="room-name">${escHtml(r.name_cn)}</figcaption>
+      </figure>`).join("");
+  }
+  const cards = $("dishCards");
+  if (cards && dishes.length) {
+    cards.innerHTML = dishes.map(d => `
+      <div class="dish-card"><img src="${escHtml(d.image)}" alt="">
+        <div class="dish-name"><div class="cn">${escHtml(d.name_cn)}</div><div class="en">${escHtml(d.name_en)}</div></div>
+      </div>`).join("");
+  }
+}
+loadHomeContent();
 </script>
 </body>
 </html>

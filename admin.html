@@ -171,6 +171,19 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
 .img-mark{font-size:12px;color:var(--gold);white-space:nowrap}
 .dish-row .price{color:var(--red);font-weight:700;font-size:15px;white-space:nowrap}
 .dish-row .ops{display:flex;gap:8px}
+/* ===== 首页内容设置 ===== */
+.home-sec{font-size:14px;color:var(--ink);font-weight:700;margin:18px 0 8px;letter-spacing:2px}
+.home-sec:first-child{margin-top:0}
+.home-item{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px dashed var(--line);flex-wrap:wrap}
+.home-item:last-child{border-bottom:none}
+.hi-pic{width:78px;flex:0 0 auto}
+.hi-pic img{width:78px;height:58px;object-fit:cover;border-radius:6px;border:1px solid var(--line);background:#efe8d8;display:block}
+.hi-pic input{width:78px;font-size:10px;margin-top:4px}
+.hi-fields{flex:1;min-width:170px;display:flex;flex-direction:column;gap:6px}
+.hi-fields input{width:100%}
+.hi-ops{display:flex;gap:6px;flex:0 0 auto;align-items:center}
+.hi-ops button{padding:5px 9px;font-size:12px}
+.home-save{margin-top:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .dish-row .ops button{
   border:1px solid var(--line);color:var(--green);padding:5px 14px;
   border-radius:4px;font-size:13px;background:#fff;
@@ -311,6 +324,27 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
     </div>
     <div class="panel-body">
       <div class="dish-table" id="dishTable"></div>
+    </div>
+  </section>
+
+  <!-- 首页内容设置 -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2>首页内容设置</h2>
+      <span class="hint">修改首页「雅致包间」和「当季臻选」的名称与图片；菜品卡片可增删、排序，保存后首页同步更新</span>
+    </div>
+    <div class="panel-body">
+      <div class="home-sec">包间展示</div>
+      <div id="homeRooms"></div>
+      <div class="home-sec">菜品展示</div>
+      <div id="homeDishes"></div>
+      <div class="add-row" style="margin-top:10px">
+        <button class="primary" id="addHomeDish" type="button">＋ 添加菜品卡片</button>
+      </div>
+      <div class="home-save">
+        <button class="primary" id="saveHome" type="button" style="padding:10px 26px;font-size:15px">保存首页内容</button>
+        <span class="img-sel">保存后首页（index.html）实时同步</span>
+      </div>
     </div>
   </section>
 
@@ -1391,12 +1425,127 @@ function toast(msg) {
 }
 
 /* ============ 启动 ============ */
+/* ============ 首页内容设置 ============ */
+const TRANSPARENT_GIF = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+const HOME_DEFAULTS = {
+  rooms: [
+    { name_cn: "西式包间", name_en: "Western Private Room", image: "images/room-west.jpg" },
+    { name_cn: "中式包间", name_en: "Chinese Private Room", image: "images/room-cn.jpg" }
+  ],
+  dishes: [
+    { name_cn: "云雾清蒸鲈鱼", name_en: "Cloud-Steamed Sea Bass", image: "images/dish-1.jpg?v=3" },
+    { name_cn: "陈皮慢煨牛腩", name_en: "Tangerine-Simmered Beef Brisket", image: "images/dish-2.jpg?v=3" },
+    { name_cn: "金沙脆皮虾球", name_en: "Golden Sand Crispy Prawns", image: "images/dish-3.jpg?v=3" },
+    { name_cn: "荷塘翡翠时蔬", name_en: "Lotus Pond Jade Greens", image: "images/dish-4.jpg?v=3" },
+    { name_cn: "黑松露珍菌饭", name_en: "Black Truffle Wild Rice", image: "images/dish-5.jpg?v=3" },
+    { name_cn: "蟹黄金汤豆腐", name_en: "Crab Roe Golden Tofu", image: "images/dish-6.jpg?v=3" },
+    { name_cn: "蜜汁玫瑰叉烧", name_en: "Rose Honey Char Siu", image: "images/dish-7.jpg?v=3" },
+    { name_cn: "桂香白玉糕", name_en: "Osmanthus White Jade Cake", image: "images/dish-8.jpg?v=3" }
+  ]
+};
+let homeRooms = [], homeDishes = [];
+function escA(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function hiImg(item) { return item.image ? escA(item.image) : TRANSPARENT_GIF; }
+
+async function loadHomeEditor() {
+  let rows = null;
+  try { rows = await sbFetch("home_cards?select=*&order=sort"); } catch (e) { rows = null; }
+  if (Array.isArray(rows) && rows.length) {
+    homeRooms = rows.filter(r => r.type === "room").map(r => ({ name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "" }));
+    homeDishes = rows.filter(r => r.type === "dish").map(r => ({ name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "" }));
+  } else {
+    homeRooms = HOME_DEFAULTS.rooms.map(x => ({ ...x }));
+    homeDishes = HOME_DEFAULTS.dishes.map(x => ({ ...x }));
+  }
+  renderHomeEditor();
+}
+function renderHomeEditor() {
+  const r = $("homeRooms"), d = $("homeDishes");
+  if (r) r.innerHTML = homeRooms.map((item, i) => homeItemHtml(item, i, "room")).join("");
+  if (d) d.innerHTML = homeDishes.map((item, i) => homeItemHtml(item, i, "dish")).join("");
+}
+function homeItemHtml(item, i, type) {
+  return '<div class="home-item" data-type="' + type + '" data-idx="' + i + '">' +
+    '<div class="hi-pic"><img src="' + hiImg(item) + '" alt=""><input type="file" accept="image/*" class="hi-file"></div>' +
+    '<div class="hi-fields"><input class="hi-cn" type="text" value="' + escA(item.name_cn) + '" placeholder="中文名"><input class="hi-en" type="text" value="' + escA(item.name_en) + '" placeholder="English name"></div>' +
+    '<div class="hi-ops">' + (type === "dish" ? '<button class="ghost" data-act="up" type="button" title="上移">↑</button><button class="ghost" data-act="down" type="button" title="下移">↓</button>' : '') +
+    '<button class="danger" data-act="del" type="button">删除</button></div></div>';
+}
+function readHomeArr(row) {
+  return row.dataset.type === "room" ? homeRooms : homeDishes;
+}
+function bindHomeEditor() {
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("[data-act]");
+    if (!btn) return;
+    const row = btn.closest(".home-item");
+    if (!row) return;
+    const arr = readHomeArr(row);
+    const idx = +row.dataset.idx;
+    const act = btn.dataset.act;
+    if (act === "up" && idx > 0) { const t = arr[idx - 1]; arr[idx - 1] = arr[idx]; arr[idx] = t; }
+    else if (act === "down" && idx < arr.length - 1) { const t = arr[idx + 1]; arr[idx + 1] = arr[idx]; arr[idx] = t; }
+    else if (act === "del") { arr.splice(idx, 1); }
+    renderHomeEditor();
+  });
+  document.addEventListener("input", e => {
+    const row = e.target.closest(".home-item");
+    if (!row) return;
+    const arr = readHomeArr(row);
+    const idx = +row.dataset.idx;
+    if (e.target.classList.contains("hi-cn")) arr[idx].name_cn = e.target.value;
+    else if (e.target.classList.contains("hi-en")) arr[idx].name_en = e.target.value;
+  });
+  document.addEventListener("change", e => {
+    const file = e.target.closest(".hi-file");
+    if (!file || !file.files || !file.files[0]) return;
+    const row = file.closest(".home-item");
+    if (!row) return;
+    const arr = readHomeArr(row);
+    const idx = +row.dataset.idx;
+    const f = file.files[0];
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 1000;
+      const scale = Math.min(1, maxW / img.width);
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.width * scale);
+      cv.height = Math.round(img.height * scale);
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+      arr[idx].image = cv.toDataURL("image/jpeg", 0.82);
+      renderHomeEditor();
+      toast("图片已读取，点「保存首页内容」生效");
+    };
+    img.onerror = () => toast("图片读取失败，请换一张");
+    img.src = URL.createObjectURL(f);
+  });
+  $("addHomeDish").addEventListener("click", () => {
+    homeDishes.push({ name_cn: "新菜品", name_en: "New Dish", image: "" });
+    renderHomeEditor();
+  });
+  $("saveHome").addEventListener("click", saveHome);
+}
+async function saveHome() {
+  try {
+    const rows = [
+      ...homeRooms.map((r, i) => ({ type: "room", sort: i, name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "" })),
+      ...homeDishes.map((d, i) => ({ type: "dish", sort: i, name_cn: d.name_cn || "", name_en: d.name_en || "", image: d.image || "" }))
+    ];
+    await sbFetch("home_cards?id=gt.0", { method: "DELETE" });
+    if (rows.length) await sbFetch("home_cards", { method: "POST", body: JSON.stringify(rows) });
+    toast("首页内容已保存 ✓");
+  } catch (err) {
+    toast("保存失败：" + (err && err.message ? err.message : err));
+  }
+}
 (async function init() {
   await loadData();
   await loadDataAll();
   renderAllAdmin();
   renderDataAll();
   loadEmailForm();
+  bindHomeEditor();
+  loadHomeEditor();
   refreshLoginState();
 })();
 </script>

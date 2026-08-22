@@ -230,9 +230,8 @@ input,textarea,select{font-family:inherit}
 .float-cart.show{opacity:1;pointer-events:auto;transform:none}
 @keyframes pop{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
 .float-cart .total{display:flex;align-items:center;gap:4px;flex-shrink:0;background:#e5c878;color:#4c3316;padding:0 14px;height:46px;border-radius:8px;cursor:pointer;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.22);transition:transform .15s,background .15s;white-space:nowrap}
-.float-cart .total b{color:#9e3b2c;font-size:16px;margin-left:2px}
 .float-cart .total:active{transform:scale(.97);background:#d9b964}
-.float-cart .total b{font-size:21px;color:#e5c878;margin-left:6px;font-weight:700}
+.fc-badge{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 5px;margin-left:6px;border-radius:50%;background:var(--cinnabar);color:#fff;font-size:13px;font-weight:700;line-height:1;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .checkout-btn{
   background:var(--cinnabar);color:#f6efe0;
   padding:0 22px;height:46px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:2px;
@@ -422,7 +421,7 @@ input,textarea,select{font-family:inherit}
   .del-btn{padding:6px}
   .float-cart{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:10px 12px;gap:8px}
   .float-cart .total{font-size:12px;height:42px;padding:0 12px}
-  .float-cart .total b{font-size:15px}
+  .fc-badge{min-width:19px;height:19px;font-size:12px;margin-left:5px}
   .checkout-btn{height:42px;padding:0 16px;font-size:13px}
 }
 </style>
@@ -464,7 +463,7 @@ input,textarea,select{font-family:inherit}
 
 <!-- 底部悬浮购物车 -->
 <div class="float-cart" id="floatCart">
-  <div class="total" id="cartInfo" role="button" title="查看已选菜品">已选菜品 <b id="fcCount">0</b> 道 · 合计 <b id="fcTotal">¥0</b></div>
+  <div class="total" id="cartInfo" role="button" title="查看已选菜品">已选菜品<span class="fc-badge" id="fcCount">0</span></div>
   <button class="checkout-btn" id="fcBtn" type="button">提交预订菜单</button>
 </div>
 
@@ -986,7 +985,6 @@ function renderCart() {
   const n = ids.reduce((a, id) => a + state.cart[id], 0);
   $("floatCart").classList.toggle("show", n > 0);
   $("fcCount").textContent = n;
-  $("fcTotal").textContent = fmt(totalPrice());
   $("drawerTotal").textContent = fmt(totalPrice());
   const listEl = $("cartList");
   if (!ids.length) {

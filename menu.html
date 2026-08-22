@@ -535,8 +535,8 @@ input,textarea,select{font-family:inherit}
           <div class="field">
             <label>包间 *</label>
             <div class="room-pick">
-              <label class="room-opt"><input type="radio" name="fRoom" value="中式包间" checked><span>中式包间</span></label>
-              <label class="room-opt"><input type="radio" name="fRoom" value="西式包间"><span>西式包间</span></label>
+              <label class="room-opt"><input type="radio" name="fRoom" value="西式包间" checked><span>西式包间</span></label>
+              <label class="room-opt"><input type="radio" name="fRoom" value="中式包间"><span>中式包间</span></label>
             </div>
           </div>
         </div>
@@ -682,7 +682,7 @@ async function buildBaojianXlsx(o) {
   ws.mergeCells("A1:E1");
   const r2 = ws.getRow(2); r2.height = 33;
   const c2 = r2.getCell(1);
-  c2.value = "用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + (o.room || "中式包间") + "　" + "用餐人数：" + o.people + "　客户：" + (o.name || "");
+  c2.value = "用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + (o.room || "西式包间") + "　" + "用餐人数：" + o.people + "　客户：" + (o.name || "");
   c2.font = { name: FONT, size: 12, bold: true };
   c2.alignment = { horizontal: "left", vertical: "middle" };
   ws.mergeCells("A2:E2");
@@ -1097,7 +1097,7 @@ async function openCheckout() {
     $("fTime").value = res.time || "";
     $("fPeople").value = res.people || 2;
     $("fNote").value = res.note || "";
-    const roomVal = res.room || "中式包间";
+    const roomVal = res.room || "西式包间";
     const roomInput = document.querySelector('input[name="fRoom"][value="' + roomVal + '"]') || document.querySelector('input[name="fRoom"]');
     if (roomInput) roomInput.checked = true;
   }
@@ -1131,7 +1131,7 @@ $("placeOrder").addEventListener("click", async () => {
   const time = $("fTime").value;
   const people = parseInt($("fPeople").value, 10) || 1;
   const note = $("fNote").value.trim();
-  const room = (document.querySelector('input[name="fRoom"]:checked') || {}).value || "中式包间";
+  const room = (document.querySelector('input[name="fRoom"]:checked') || {}).value || "西式包间";
   const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
   const items = ids.map(id => { const d = MENU.find(x => x.id === id); return { id, name: d.name, price: d.price, qty: state.cart[id] }; });
   const orderNo = "ORD" + Date.now().toString().slice(-6);

@@ -821,6 +821,7 @@ function openEditor(id) {
   $("editorTitle").textContent = d ? "编辑菜品" : "添加菜品";
   $("eName").value = d ? d.name : "";
   $("eEn").value = d ? (d.en || "") : "";
+  $("eEn").dataset.auto = "1";
   $("ePrice").value = d ? d.price : "";
   $("eDesc").value = d ? d.desc : "";
   $("eEmoji").value = d ? d.emoji : "🍽️";
@@ -1451,11 +1452,11 @@ async function loadHomeEditor() {
   let rows = null;
   try { rows = await sbFetch("home_cards?select=*&order=sort"); } catch (e) { rows = null; }
   if (Array.isArray(rows) && rows.length) {
-    homeRooms = rows.filter(r => r.type === "room").map(r => ({ name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "" }));
-    homeDishes = rows.filter(r => r.type === "dish").map(r => ({ name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "" }));
+    homeRooms = rows.filter(r => r.type === "room").map(r => ({ name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "", _autoEn: true }));
+    homeDishes = rows.filter(r => r.type === "dish").map(r => ({ name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "", _autoEn: true }));
   } else {
-    homeRooms = HOME_DEFAULTS.rooms.map(x => ({ ...x }));
-    homeDishes = HOME_DEFAULTS.dishes.map(x => ({ ...x }));
+    homeRooms = HOME_DEFAULTS.rooms.map(x => ({ ...x, _autoEn: true }));
+    homeDishes = HOME_DEFAULTS.dishes.map(x => ({ ...x, _autoEn: true }));
   }
   renderHomeEditor();
 }
@@ -1467,7 +1468,7 @@ function renderHomeEditor() {
 function homeItemHtml(item, i, type) {
   return '<div class="home-item" data-type="' + type + '" data-idx="' + i + '">' +
     '<div class="hi-pic"><img src="' + hiImg(item) + '" alt=""><input type="file" accept="image/*" class="hi-file"></div>' +
-    '<div class="hi-fields"><input class="hi-cn" type="text" value="' + escA(item.name_cn) + '" placeholder="中文名"><input class="hi-en" type="text" value="' + escA(item.name_en) + '" placeholder="English name"></div>' +
+    '<div class="hi-fields"><input class="hi-cn" type="text" value="' + escA(item.name_cn) + '" placeholder="中文名"><input class="hi-en" type="text" value="' + escA(item.name_en) + '" data-auto="' + (item._autoEn ? "1" : "") + '" placeholder="English name"></div>' +
     '<div class="hi-ops">' + (type === "dish" ? '<button class="ghost" data-act="up" type="button" title="上移">↑</button><button class="ghost" data-act="down" type="button" title="下移">↓</button>' : '') +
     '<button class="danger" data-act="del" type="button">删除</button></div></div>';
 }
@@ -1488,13 +1489,30 @@ function bindHomeEditor() {
     else if (act === "del") { arr.splice(idx, 1); }
     renderHomeEditor();
   });
+  const autoTransHome = debounce(row => {
+    const arr = readHomeArr(row);
+    const idx = +row.dataset.idx;
+    const item = arr[idx];
+    const enInput = row.querySelector(".hi-en");
+    if (!enInput || !item || !String(item.name_cn || "").trim()) return;
+    if (enInput.value && item._autoEn !== true) return;
+    autoTranslate(enInput, item.name_cn).then(() => {
+      if (arr[idx]) { arr[idx].name_en = enInput.value; arr[idx]._autoEn = true; }
+    });
+  }, 600);
   document.addEventListener("input", e => {
     const row = e.target.closest(".home-item");
     if (!row) return;
     const arr = readHomeArr(row);
     const idx = +row.dataset.idx;
-    if (e.target.classList.contains("hi-cn")) arr[idx].name_cn = e.target.value;
-    else if (e.target.classList.contains("hi-en")) arr[idx].name_en = e.target.value;
+    if (e.target.classList.contains("hi-cn")) {
+      arr[idx].name_cn = e.target.value;
+      autoTransHome(row);
+    } else if (e.target.classList.contains("hi-en")) {
+      arr[idx].name_en = e.target.value;
+      arr[idx]._autoEn = false;
+      e.target.dataset.auto = "";
+    }
   });
   document.addEventListener("change", e => {
     const file = e.target.closest(".hi-file");
@@ -1538,6 +1556,71 @@ async function saveHome() {
     toast("保存失败：" + (err && err.message ? err.message : err));
   }
 }
+/* ============ 中文菜名 → 自动生成英文名 ============ */
+function debounce(fn, ms) {
+  let t;
+  return function () {
+    const args = arguments, self = this;
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(self, args), ms);
+  };
+}
+const DISH_EN_DICT = {
+  "云雾清蒸鲈鱼": "Cloud-Steamed Sea Bass", "陈皮慢煨牛腩": "Tangerine-Simmered Beef Brisket",
+  "金沙脆皮虾球": "Golden Sand Crispy Prawns", "荷塘翡翠时蔬": "Lotus Pond Jade Greens",
+  "黑松露珍菌饭": "Black Truffle Wild Rice", "蟹黄金汤豆腐": "Crab Roe Golden Tofu",
+  "蜜汁玫瑰叉烧": "Rose Honey Char Siu", "桂香白玉糕": "Osmanthus White Jade Cake",
+  "宫保鸡丁": "Kung Pao Chicken", "麻婆豆腐": "Mapo Tofu", "鱼香肉丝": "Yu-Shiang Shredded Pork",
+  "清蒸鲈鱼": "Steamed Sea Bass", "红烧肉": "Braised Pork Belly", "糖醋里脊": "Sweet and Sour Pork",
+  "北京烤鸭": "Peking Duck", "春卷": "Spring Rolls", "扬州炒饭": "Yangzhou Fried Rice",
+  "蛋炒饭": "Egg Fried Rice", "炒饭": "Fried Rice", "炒面": "Fried Noodles",
+  "饺子": "Dumplings", "小笼包": "Soup Dumplings", "酸菜鱼": "Fish in Pickled Cabbage",
+  "水煮鱼": "Sichuan Boiled Fish", "回锅肉": "Twice-Cooked Pork", "口水鸡": "Saliva Chicken",
+  "夫妻肺片": "Fuqi Feipian", "东坡肉": "Dongpo Pork", "干煸四季豆": "Dry-Fried Green Beans",
+  "蒜蓉粉丝蒸扇贝": "Garlic Vermicelli Scallops", "清蒸大闸蟹": "Steamed Hairy Crab",
+  "白灼虾": "Poached Shrimp", "番茄炒蛋": "Scrambled Eggs with Tomato",
+  "上汤娃娃菜": "Baby Cabbage in Soup", "香菇青菜": "Mushroom Greens",
+  "蒜蓉西兰花": "Garlic Broccoli", "紫菜蛋花汤": "Seaweed Egg Drop Soup",
+  "酸辣汤": "Hot and Sour Soup", "葱油饼": "Scallion Pancake", "汤圆": "Tangyuan (Glutinous Rice Balls)"
+};
+function translateDishName(zh) {
+  const key = String(zh || "").trim();
+  if (!key) return Promise.resolve("");
+  if (DISH_EN_DICT[key]) return Promise.resolve(DISH_EN_DICT[key]);
+  const to = s => String(s || "").trim().replace(/\s+/g, " ");
+  const t1 = fetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(key) + "&langpair=zh|en", { signal: AbortSignal.timeout(6000) })
+    .then(r => r.json())
+    .then(j => to(j && j.responseData && j.responseData.translatedText))
+    .catch(() => "");
+  return t1.then(t => {
+    if (t) return t;
+    return fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q=" + encodeURIComponent(key), { signal: AbortSignal.timeout(6000) })
+      .then(r => r.json())
+      .then(j => to(j && j[0] && j[0][0] && j[0][0][0]))
+      .catch(() => "");
+  });
+}
+function autoTranslate(enInput, zh) {
+  const key = String(zh || "").trim();
+  if (!enInput || !key) return Promise.resolve();
+  return translateDishName(key).then(t => {
+    if (t && document.body.contains(enInput)) {
+      enInput.value = t;
+      enInput.dataset.auto = "1";
+    }
+  });
+}
+function bindDishEditorTranslate() {
+  const nameEl = $("eName"), enEl = $("eEn");
+  if (!nameEl || !enEl) return;
+  const run = debounce(() => {
+    if (!String(nameEl.value || "").trim()) return;
+    if (enEl.value && enEl.dataset.auto !== "1") return;
+    autoTranslate(enEl, nameEl.value);
+  }, 600);
+  nameEl.addEventListener("input", run);
+  enEl.addEventListener("input", () => { enEl.dataset.auto = ""; });
+}
 (async function init() {
   await loadData();
   await loadDataAll();
@@ -1546,6 +1629,7 @@ async function saveHome() {
   loadEmailForm();
   bindHomeEditor();
   loadHomeEditor();
+  bindDishEditorTranslate();
   refreshLoginState();
 })();
 </script>

@@ -511,11 +511,11 @@ input,textarea,select{font-family:inherit}
         <div class="field-row">
           <div class="field">
             <label>用餐日期</label>
-            <input id="fDate" type="date">
+            <input id="fDate" type="date" data-dtp>
           </div>
           <div class="field">
             <label>用餐时间</label>
-            <input id="fTime" type="time" value="18:30">
+            <input id="fTime" type="time" value="18:30" data-dtp>
           </div>
         </div>
         <div class="field-row">
@@ -599,6 +599,7 @@ input,textarea,select{font-family:inherit}
 </div>
 <div class="toast" id="toast"></div><script src="lib/exceljs.min.js"></script>
 <script src="lib/dept-picker.js"></script>
+<script src="lib/datetime-picker.js"></script>
 <script>
 /* ============ 默认菜单（管理页没保存过时使用） ============ */
 const DEFAULT_MENU = [

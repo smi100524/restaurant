@@ -361,11 +361,11 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
         <div class="field-row">
           <div class="field">
             <label>用餐日期 *</label>
-            <input id="bDate" type="date">
+            <input id="bDate" type="date" data-dtp>
           </div>
           <div class="field">
             <label>用餐时间 *</label>
-            <input id="bTime" type="time" value="18:30">
+            <input id="bTime" type="time" value="18:30" data-dtp>
           </div>
         </div>
         <div class="field-row">
@@ -396,7 +396,8 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
   </div>
 </div>
 
-<div class="toast" id="toast"></div><script src="lib/dept-picker.js"></script><script>
+<div class="toast" id="toast"></div><script src="lib/dept-picker.js"></script>
+<script src="lib/datetime-picker.js"></script><script>
 /* ============ 小工具 ============ */
 const $ = id => document.getElementById(id);
 

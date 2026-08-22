@@ -55,7 +55,6 @@ input,textarea,select{font-family:inherit}
   letter-spacing:1px;transition:transform .15s;
 }
 .cart-btn:active{transform:scale(.96)}
-.cart-fab{position:fixed;bottom:14px;right:14px;z-index:70;box-shadow:var(--shadow)}
 .cart-badge{
   position:absolute;top:-7px;right:-7px;
   min-width:20px;height:20px;padding:0 5px;border-radius:999px;
@@ -220,15 +219,15 @@ input,textarea,select{font-family:inherit}
 /* ===== 底部悬浮栏 ===== */
 .float-cart{
   position:fixed;left:16px;right:16px;bottom:16px;z-index:60;
-  display:none;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;justify-content:space-between;
   background:var(--celadon-deep);color:#f4efe0;
   border-radius:10px;padding:13px 18px;
   box-shadow:0 10px 28px rgba(47,58,52,.35);
   border:1px solid rgba(176,154,104,.5);
 }
-.float-cart.show{display:flex;animation:pop .25s ease}
 @keyframes pop{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
-.float-cart .total{font-size:13px;color:#d5dccb}
+.float-cart .total{font-size:13px;color:#d5dccb;cursor:pointer;padding:6px 8px;margin-left:-8px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.float-cart .total:active{background:rgba(255,255,255,.12)}
 .float-cart .total b{font-size:21px;color:#e5c878;margin-left:6px;font-weight:700}
 .checkout-btn{
   background:var(--cinnabar);color:#f6efe0;
@@ -372,9 +371,6 @@ input,textarea,select{font-family:inherit}
   letter-spacing:1px;border:1px solid rgba(176,154,104,.5);
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-@media (min-width:720px){
-  .float-cart{display:none !important}
-}
 @media (max-width:719px){
   body{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
   .topbar{padding:0 12px}
@@ -427,7 +423,6 @@ input,textarea,select{font-family:inherit}
 </style>
 </head>
 <body>
-  <button class="cart-btn cart-fab" id="cartBtn" type="button">🛒<span class="lbl">预订菜单</span><span class="cart-badge" id="cartBadge">0</span></button>
 
 
 <section class="hero">
@@ -464,7 +459,7 @@ input,textarea,select{font-family:inherit}
 
 <!-- 底部悬浮购物车 -->
 <div class="float-cart" id="floatCart">
-  <div class="total">已选 <span id="fcCount">0</span> 件 · 合计 <b id="fcTotal">¥0</b></div>
+  <div class="total" id="cartInfo" role="button" title="查看已选菜品">已选菜品 <b id="fcCount">0</b> 道 · 合计 <b id="fcTotal">¥0</b></div>
   <button class="checkout-btn" id="fcBtn" type="button">提交预订菜单</button>
 </div>
 
@@ -984,11 +979,6 @@ function addToCart(id, delta) {
 function renderCart() {
   const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
   const n = ids.reduce((a, id) => a + state.cart[id], 0);
-  $("cartBadge").textContent = n;
-  $("cartBadge").classList.toggle("show", n > 0);
-  $("floatCart").classList.toggle("show", n > 0);
-  const fcVisible = getComputedStyle($("floatCart")).display !== "none";
-  $("cartBtn").style.display = (n > 0 && fcVisible) ? "none" : "";
   $("fcCount").textContent = n;
   $("fcTotal").textContent = fmt(totalPrice());
   $("drawerTotal").textContent = fmt(totalPrice());
@@ -1049,7 +1039,7 @@ $("searchInput").addEventListener("input", e => {
 const drawer = $("drawer"), overlay = $("overlay");
 function openDrawer() { drawer.classList.add("show"); overlay.classList.add("show"); }
 function closeDrawer() { drawer.classList.remove("show"); overlay.classList.remove("show"); }
-$("cartBtn").addEventListener("click", openDrawer);
+$("cartInfo").addEventListener("click", openDrawer);
 $("closeDrawer").addEventListener("click", closeDrawer);
 $("fcBtn").addEventListener("click", openDrawer);
 overlay.addEventListener("click", closeDrawer);

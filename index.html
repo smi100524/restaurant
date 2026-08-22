@@ -331,7 +331,7 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
 <!-- 底部悬浮预订 -->
 <div class="book-float">
   <button class="book-float-btn ghost" id="myBookBtn" type="button">我的预订</button>
-  <button class="book-float-btn" id="bookBtn" type="button">点击预订</button>
+  <button class="book-float-btn" id="goMenuBtn" type="button">开始点菜</button>
 </div>
 
 <footer>
@@ -340,118 +340,12 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
 
 </footer>
 
-<!-- 预订弹窗 -->
-<div class="modal" id="bookModal">
-  <div class="modal-card">
-    <form id="bookForm" novalidate>
-      <div class="modal-head">
-        <h3>预订席位</h3>
-        <button class="close-btn" id="closeBook" type="button" aria-label="关闭">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="field-row">
-          <div class="field">
-            <label>客户 *</label>
-            <input id="bName" type="text" placeholder="如：王女士" autocomplete="off">
-          </div>
-          <div class="field">
-            <label>联系电话 *</label>
-            <input id="bPhone" type="tel" placeholder="手机号" autocomplete="off">
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>预订部门</label>
-            <input id="bDept" type="text" data-dept-picker placeholder="选择或输入部门" autocomplete="off">
-          </div>
-          <div class="field">
-            <label>预订人</label>
-            <input id="bBy" type="text" placeholder="如：张经理" autocomplete="off">
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>包间 *</label>
-            <div class="room-pick">
-              <label class="room-opt"><input type="radio" name="bRoom" value="中式包间" checked><span>中式包间</span></label>
-              <label class="room-opt"><input type="radio" name="bRoom" value="西式包间"><span>西式包间</span></label>
-            </div>
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>用餐日期 *</label>
-            <input id="bDate" type="date" data-dtp>
-          </div>
-          <div class="field">
-            <label>用餐时间 *</label>
-            <input id="bTime" type="time" value="18:30" data-dtp>
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label>用餐人数</label>
-            <input id="bPeople" type="number" min="1" max="50" value="2">
-          </div>
-          <div class="field">
-            <label>备注（选填）</label>
-            <input id="bNote" type="text" placeholder="如：忌辣、忌口等" autocomplete="off">
-          </div>
-        </div>
-      </div>
-      <div class="modal-foot">
-        <button class="submit-btn" type="submit">下一步</button>
-      </div>
-    </form>
-    <div class="success" id="bookConfirm" style="display:none">
-      <div class="s-emoji">📋</div>
-      <h3>请确认预订信息</h3>
-      <div class="r-list" id="rList"></div>
-      <p class="auto-hint">请核对以上信息，确认后将进入点菜</p>
-      <div class="confirm-ops">
-        <button class="ghost" id="bookBack" type="button">返回修改</button>
-        <button class="confirm-btn" id="bookConfirmBtn" type="button">确认信息</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="toast" id="toast"></div><script src="lib/dept-picker.js"></script>
 <script src="lib/datetime-picker.js"></script>
 <script src="lib/booking-utils.js"></script>
 <script src="lib/my-bookings.js"></script><script>
 /* ============ 小工具 ============ */
 const $ = id => document.getElementById(id);
-
-/* ============ 预订数据保存（本机） ============ */
-const DB_NAME = "swxc_db", STORE = "kv";
-function idbOpen() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-function idbGet(key) {
-  return new Promise((resolve, reject) => {
-    idbOpen().then(db => {
-      const r = db.transaction(STORE, "readonly").objectStore(STORE).get(key);
-      r.onsuccess = () => resolve(r.result);
-      r.onerror = () => reject(r.error);
-    }).catch(reject);
-  });
-}
-function idbPut(key, val) {
-  return new Promise((resolve, reject) => {
-    idbOpen().then(db => {
-      const tx = db.transaction(STORE, "readwrite");
-      tx.objectStore(STORE).put(val, key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    }).catch(reject);
-  });
-}
 
 /* ============ Supabase 云端数据 ============ */
 const SUPABASE_URL = "https://lyjvwogbnnithedromac.supabase.co";
@@ -476,96 +370,7 @@ async function sbFetch(path, options = {}) {
   } catch (e) { throw e; } finally { clearTimeout(timer); }
 }
 
-/* ============ 预订弹窗 ============ */
-const modal = $("bookModal"), form = $("bookForm"), confirmView = $("bookConfirm");
-function todayStr() {
-  const d = new Date();
-  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-}
-function openBook() {
-  if (!$("bDate").value) $("bDate").value = todayStr();
-  modal.classList.add("show");
-  document.body.style.overflow = "hidden";
-}
-function closeBook() {
-  modal.classList.remove("show");
-  document.body.style.overflow = "";
-}
-$("bookBtn").addEventListener("click", openBook);
-$("closeBook").addEventListener("click", closeBook);
-modal.addEventListener("click", e => { if (e.target === modal) closeBook(); });
-
-let pending = null;
-function esc(s) {
-  return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-function readForm() {
-  return {
-    name: $("bName").value.trim(),
-    phone: $("bPhone").value.trim(),
-    dept: $("bDept").value.trim(),
-    by: $("bBy").value.trim(),
-    date: $("bDate").value,
-    time: $("bTime").value,
-    people: parseInt($("bPeople").value, 10) || 1,
-    note: $("bNote").value.trim(),
-    room: (document.querySelector('input[name="bRoom"]:checked') || {}).value || "中式包间"
-  };
-}
-function renderConfirm(r) {
-  const rows = [
-    ["客户", r.name],
-    ["联系电话", r.phone],
-    ["预订部门", r.dept || "—"],
-    ["预订人", r.by || "—"],
-    ["用餐日期", r.date],
-    ["用餐时间", r.time],
-    ["用餐人数", r.people + " 人"],
-    ["包间", r.room || "中式包间"],
-    ["备注", r.note || "无"]
-  ];
-  $("rList").innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
-}
-form.addEventListener("submit", e => {
-  e.preventDefault();
-  const data = readForm();
-  if (!data.name) return toast("请填写客户名称");
-  if (!data.phone) return toast("请填写联系电话");
-  if (!data.date) return toast("请选择用餐日期");
-  if (!data.time) return toast("请选择用餐时间");
-  pending = data;
-  renderConfirm(data);
-  form.style.display = "none";
-  confirmView.style.display = "block";
-});
-$("bookBack").addEventListener("click", () => {
-  confirmView.style.display = "none";
-  form.style.display = "";
-});
-$("bookConfirmBtn").addEventListener("click", async () => {
-  if (!pending) return;
-  const rec = { id: Date.now(), ...pending, ts: Date.now() };
-  const conflict = await checkRoomConflict(rec.room, rec.date, rec.time);
-  if (conflict) { toast(conflict); return; }
-  let cloudOk = false;
-  try {
-    await sbFetch("reservations", {
-      method: "POST",
-      body: JSON.stringify([{ id: rec.id, name: rec.name, phone: rec.phone, dept: rec.dept || "", booker: rec.by || "", book_date: rec.date || "", book_time: rec.time || "", people: rec.people, note: rec.note || "", room: rec.room || "中式包间", ts: rec.ts }])
-    });
-    cloudOk = true;
-  } catch (err) { cloudOk = false; }
-  if (!cloudOk) {
-    try {
-      const list = (await idbGet("reservations")) || [];
-      list.push(rec);
-      await idbPut("reservations", list);
-    } catch (err) { /* 保存失败不阻塞 */ }
-  }
-  window.location.href = "menu.html";
-});
-
+$("goMenuBtn").addEventListener("click", () => { window.location.href = "menu.html"; });
 
 /* ============ 轻提示 ============ */
 let toastTimer;

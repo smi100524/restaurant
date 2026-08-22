@@ -55,7 +55,7 @@ input,textarea,select{font-family:inherit}
   letter-spacing:1px;transition:transform .15s;
 }
 .cart-btn:active{transform:scale(.96)}
-.cart-fab{position:fixed;top:14px;right:14px;z-index:70;box-shadow:var(--shadow)}
+.cart-fab{position:fixed;bottom:14px;right:14px;z-index:70;box-shadow:var(--shadow)}
 .cart-badge{
   position:absolute;top:-7px;right:-7px;
   min-width:20px;height:20px;padding:0 5px;border-radius:999px;
@@ -984,6 +984,8 @@ function renderCart() {
   $("cartBadge").textContent = n;
   $("cartBadge").classList.toggle("show", n > 0);
   $("floatCart").classList.toggle("show", n > 0);
+  const fcVisible = getComputedStyle($("floatCart")).display !== "none";
+  $("cartBtn").style.display = (n > 0 && fcVisible) ? "none" : "";
   $("fcCount").textContent = n;
   $("fcTotal").textContent = fmt(totalPrice());
   $("drawerTotal").textContent = fmt(totalPrice());

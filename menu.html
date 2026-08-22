@@ -335,6 +335,9 @@ input,textarea,select{font-family:inherit}
 .summary .grand{font-size:15px;color:var(--ink);font-weight:700;border-top:1px dashed var(--line);margin-top:4px;padding-top:6px}
 .summary .grand b{color:var(--cinnabar);font-size:19px}
 .modal-foot{padding:14px 22px 20px}
+.modal-foot.foot-split{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.modal-foot.foot-split .step-hint{font-size:13px;color:var(--sub);letter-spacing:1px;white-space:nowrap}
+.modal-foot.foot-split .submit-btn{width:auto;padding:12px 24px;letter-spacing:2px}
 .submit-btn{
   width:100%;padding:14px;border-radius:6px;
   background:var(--celadon);color:#f6efe0;
@@ -494,13 +497,13 @@ input,textarea,select{font-family:inherit}
 <!-- 结算弹窗 -->
 <div class="modal" id="checkoutModal">
   <div class="modal-card">
-    <div id="checkoutForm">
+    <div id="stepInfo">
       <div class="modal-head">
-        <h3>确认预订</h3>
+        <h3>预订信息</h3>
         <button class="close-btn" id="closeModal" type="button" aria-label="关闭">✕</button>
       </div>
       <div class="modal-body">
-        <div class="sec-title">预订信息</div>
+        <div class="sec-title">请填写预订信息</div>
         <div class="field-row">
           <div class="field">
             <label>客户</label>
@@ -550,8 +553,22 @@ input,textarea,select{font-family:inherit}
             </div>
           </div>
         </div>
+      </div>
+      <div class="modal-foot foot-split">
+        <span class="step-hint" id="stepHint"></span>
+        <button class="submit-btn" id="toConfirm" type="button">下一步：确认预订</button>
+      </div>
+    </div>
+    <div id="stepConfirm" style="display:none">
+      <div class="modal-head">
+        <h3>确认预订</h3>
+        <button class="close-btn" id="closeModal2" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="sec-title">预订信息</div>
+        <div class="info-list" id="confirmInfo"></div>
         <div class="sec-title">预订菜单</div>
-        <div class="order-items" id="orderItems"></div>
+        <div class="order-items" id="confirmItems"></div>
         <div class="summary" id="orderSummary"></div>
       </div>
       <div class="modal-foot">
@@ -994,7 +1011,19 @@ function addToCart(id, delta) {
   else state.cart[id] = next;
   saveCart();
   renderAll();
-  if (modal.classList.contains("show")) { renderOrderItems(); buildSummary(); }
+    if (modal.classList.contains("show")) { renderConfirmItems(); buildSummary(); }
+}
+function renderConfirmItems() {
+  const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
+  const el = $("confirmItems");
+  if (!ids.length) {
+    el.innerHTML = `<div class="cart-empty" style="padding:18px 0"><span class="e">🛒</span>预订菜单还是空的<br>去挑几道好吃的吧～</div>`;
+    return;
+  }
+  el.innerHTML = ids.map(id => {
+    const d = MENU.find(x => x.id === id);
+    return `<div class="oi static"><span class="oe">${d.emoji}</span><span class="on">${esc(d.name)}</span><span class="op">× ${state.cart[id]}</span><span class="op">¥${d.price * state.cart[id]}</span></div>`;
+  }).join("");
 }
 function renderCart() {
   const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
@@ -1075,29 +1104,7 @@ async function latestReservation() {
   } catch (e) {}
   return null;
 }
-function renderOrderItems() {
-  const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
-  const el = $("orderItems");
-  if (!ids.length) {
-    el.innerHTML = `<div class="cart-empty" style="padding:18px 0"><span class="e">🛒</span>预订菜单还是空的<br>去挑几道好吃的吧～</div>`;
-    return;
-  }
-  el.innerHTML = ids.map(id => {
-    const d = MENU.find(x => x.id === id);
-    return `
-    <div class="oi">
-      <span class="oe">${d.emoji}</span>
-      <span class="on">${esc(d.name)}</span>
-      <div class="stepper">
-        <button class="step-btn minus" data-id="${id}" type="button">−</button>
-        <span class="step-num">${state.cart[id]}</span>
-        <button class="step-btn plus" data-id="${id}" type="button">+</button>
-      </div>
-      <span class="op">¥${d.price * state.cart[id]}</span>
-      <button class="del" data-id="${id}" type="button" title="移除">✕</button>
-    </div>`;
-  }).join("");
-}
+
 async function openCheckout() {
   if (!countItems()) { toast("请先选择菜品哦～"); return; }
   closeDrawer();
@@ -1115,7 +1122,9 @@ async function openCheckout() {
     const roomInput = document.querySelector('input[name="fRoom"][value="' + roomVal + '"]') || document.querySelector('input[name="fRoom"]');
     if (roomInput) roomInput.checked = true;
   }
-  renderOrderItems();
+  $("stepInfo").style.display = "";
+  $("stepConfirm").style.display = "none";
+  $("stepHint").textContent = "已选 " + countItems() + " 道菜 · 合计 " + fmt(totalPrice());
   buildSummary();
   modal.classList.add("show");
   document.body.style.overflow = "hidden";
@@ -1131,9 +1140,32 @@ function buildSummary() {
 function closeCheckout() {
   modal.classList.remove("show");
   document.body.style.overflow = "";
+  const s1 = $("stepInfo"), s2 = $("stepConfirm");
+  if (s1) s1.style.display = "";
+  if (s2) s2.style.display = "none";
 }
 $("closeModal").addEventListener("click", closeCheckout);
 modal.addEventListener("click", e => { if (e.target === modal) closeCheckout(); });
+$("closeModal2").addEventListener("click", closeCheckout);
+$("toConfirm").addEventListener("click", () => {
+  if (!countItems()) { toast("请先选择菜品哦～"); return; }
+  const room = (document.querySelector('input[name="fRoom"]:checked') || {}).value || "西式包间";
+  const info = [
+    ["客户", $("fName").value.trim() || "客人"],
+    ["联系电话", $("fPhone").value.trim() || "—"],
+    ["预订部门", $("fDept").value.trim() || "—"],
+    ["预订人", $("fBy").value.trim() || "—"],
+    ["用餐日期", ($("fDate").value || "") + " " + ($("fTime").value || "")],
+    ["用餐人数", ($("fPeople").value || "1") + " 人"],
+    ["包间", room],
+    ["备注", $("fNote").value.trim() || "无"]
+  ];
+  $("confirmInfo").innerHTML = info.map(kv => '<div class="row"><span>' + kv[0] + '</span><b>' + esc(kv[1]) + '</b></div>').join("");
+  renderConfirmItems();
+  buildSummary();
+  $("stepInfo").style.display = "none";
+  $("stepConfirm").style.display = "block";
+});
 
 let lastOrder = null;
 $("placeOrder").addEventListener("click", async () => {
@@ -1169,7 +1201,8 @@ $("placeOrder").addEventListener("click", async () => {
   }
   lastOrder = order;
   $("orderNo").textContent = "#" + orderNo;
-  $("checkoutForm").style.display = "none";
+  $("stepInfo").style.display = "none";
+  $("stepConfirm").style.display = "none";
   $("successView").style.display = "block";
 
   const sent = await sendEmail({
@@ -1212,7 +1245,8 @@ $("againBtn").addEventListener("click", () => {
   $("viewOrderView").style.display = "block";
 });
 $("viewOrderClose").addEventListener("click", () => {
-  $("checkoutForm").style.display = "";
+  $("stepInfo").style.display = "";
+  $("stepConfirm").style.display = "none";
   $("successView").style.display = "none";
   $("viewOrderView").style.display = "none";
   closeCheckout();

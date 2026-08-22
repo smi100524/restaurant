@@ -126,8 +126,11 @@ input,textarea,select{font-family:inherit}
 .search .icon{font-size:15px}
 /* ===== 分类 ===== */
 .cats{
+  position:sticky;top:0;z-index:45;
   display:flex;gap:8px;overflow-x:auto;
-  padding:4px 16px 14px;scrollbar-width:none;
+  padding:10px 16px 12px;scrollbar-width:none;
+  background:rgba(245,240,228,.96);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
 }
 .cats::-webkit-scrollbar{display:none}
 .cat-chip{
@@ -382,8 +385,8 @@ input,textarea,select{font-family:inherit}
   .cart-btn{padding:7px 10px}
   .cart-btn .lbl{display:none}
   .cats{
-    position:sticky;top:64px;z-index:45;
-    background:rgba(245,240,228,.94);
+    position:sticky;top:0;z-index:45;
+    background:rgba(245,240,228,.96);
     backdrop-filter:blur(8px);
     padding:10px 12px 12px;
     border-bottom:1px solid var(--line);

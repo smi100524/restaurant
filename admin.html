@@ -93,7 +93,7 @@ input,textarea,select{font-family:inherit}
 }
 .admin-link:hover{background:var(--green);color:#f6ecd8}
 /* ===== 布局 ===== */
-.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px;display:none}
 .notice{
   margin-top:18px;padding:11px 16px;
   border:1px dashed var(--gold);color:var(--sub);
@@ -1378,6 +1378,8 @@ function tryLogin() {
   if ($("loginPw").value === getAdminPw()) {
     try { sessionStorage.setItem("swxc_admin_in", "1"); } catch (e) {}
     $("loginView").style.display = "none";
+    const w = document.querySelector(".wrap");
+    if (w) w.style.display = "block";
     $("loginPw").value = "";
     toast("欢迎回来 👋");
   } else {
@@ -1389,6 +1391,8 @@ function tryLogin() {
 function logout() {
   try { sessionStorage.removeItem("swxc_admin_in"); } catch (e) {}
   $("loginView").style.display = "flex";
+  const w = document.querySelector(".wrap");
+  if (w) w.style.display = "none";
   $("loginPw").value = "";
   $("loginPw").focus();
   toast("已退出登录");
@@ -1407,11 +1411,10 @@ $("pwSave").addEventListener("click", () => {
   toast("密码已修改 ✓");
 });
 function refreshLoginState() {
-  if (isLoggedIn()) {
-    $("loginView").style.display = "none";
-  } else {
-    $("loginView").style.display = "flex";
-  }
+  const ok = isLoggedIn();
+  $("loginView").style.display = ok ? "none" : "flex";
+  const w = document.querySelector(".wrap");
+  if (w) w.style.display = ok ? "block" : "none";
 }
 
 /* ============ 轻提示 ============ */

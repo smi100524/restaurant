@@ -144,8 +144,23 @@ h1.cn{
 .showcase-roll{height:9px;border-radius:5px;background:linear-gradient(180deg,#b09a68,#8f7c50);margin:0 2px;box-shadow:0 1px 2px rgba(0,0,0,.18)}
 .showcase-roll.bottom{margin-top:10px}
 .dish-cards{display:flex;flex-direction:column;gap:0;margin-top:10px;border-radius:4px;overflow:hidden;background:#fbf6ea}
-.dish-card{line-height:0}
+.dish-card{position:relative;line-height:0}
 .dish-card img{display:block;width:100%;height:auto}
+.dish-name{
+  position:absolute;left:0;right:0;bottom:0;
+  background:linear-gradient(90deg, rgba(8,14,12,.94) 0%, rgba(8,14,12,.8) 45%, rgba(8,14,12,.35) 75%, rgba(8,14,12,0) 100%);
+  padding:16px 18px 14px;
+  text-align:left;line-height:1.3;
+}
+.dish-name .cn{color:#fff;font-family:"Kaiti SC","KaiTi","楷体",serif;font-size:18px;font-weight:700;letter-spacing:3px;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.dish-name .en{color:rgba(255,255,255,.82);font-size:11px;letter-spacing:1.5px;margin-top:3px;text-transform:uppercase}
+.dish-name .line{width:34px;height:3px;background:#52c26a;border-radius:2px;margin-top:8px}
+@media (max-width:380px){
+  .dish-name{padding:12px 14px 10px}
+  .dish-name .cn{font-size:15px;letter-spacing:2px}
+  .dish-name .en{font-size:10px;letter-spacing:1px}
+  .dish-name .line{width:28px;margin-top:6px}
+}
 .showcase-note{margin-top:24px;font-family:"Kaiti SC","KaiTi","楷体",serif;font-size:14px;letter-spacing:5px;color:var(--sub)}
 .showcase-note b{color:var(--cinnabar);font-weight:400}
 
@@ -306,14 +321,30 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
   <div class="showcase-frame">
     <div class="showcase-roll"></div>
     <div class="dish-cards">
-      <div class="dish-card"><img src="images/dish-1.jpg?v=2" alt=""></div>
-      <div class="dish-card"><img src="images/dish-2.jpg?v=2" alt=""></div>
-      <div class="dish-card"><img src="images/dish-3.jpg?v=2" alt=""></div>
-      <div class="dish-card"><img src="images/dish-4.jpg?v=2" alt=""></div>
-      <div class="dish-card"><img src="images/dish-5.jpg?v=2" alt=""></div>
-      <div class="dish-card"><img src="images/dish-6.jpg?v=2" alt=""></div>
-      <div class="dish-card"><img src="images/dish-7.jpg?v=2" alt=""></div>
-      <div class="dish-card"><img src="images/dish-8.jpg?v=2" alt=""></div>
+      <div class="dish-card"><img src="images/dish-1.jpg?v=3" alt="">
+        <div class="dish-name"><div class="cn">云雾清蒸鲈鱼</div><div class="en">Cloud-Steamed Sea Bass</div><div class="line"></div></div>
+      </div>
+      <div class="dish-card"><img src="images/dish-2.jpg?v=3" alt="">
+        <div class="dish-name"><div class="cn">陈皮慢煨牛腩</div><div class="en">Tangerine-Simmered Beef Brisket</div><div class="line"></div></div>
+      </div>
+      <div class="dish-card"><img src="images/dish-3.jpg?v=3" alt="">
+        <div class="dish-name"><div class="cn">金沙脆皮虾球</div><div class="en">Golden Sand Crispy Prawns</div><div class="line"></div></div>
+      </div>
+      <div class="dish-card"><img src="images/dish-4.jpg?v=3" alt="">
+        <div class="dish-name"><div class="cn">荷塘翡翠时蔬</div><div class="en">Lotus Pond Jade Greens</div><div class="line"></div></div>
+      </div>
+      <div class="dish-card"><img src="images/dish-5.jpg?v=3" alt="">
+        <div class="dish-name"><div class="cn">黑松露珍菌饭</div><div class="en">Black Truffle Wild Rice</div><div class="line"></div></div>
+      </div>
+      <div class="dish-card"><img src="images/dish-6.jpg?v=3" alt="">
+        <div class="dish-name"><div class="cn">蟹黄金汤豆腐</div><div class="en">Crab Roe Golden Tofu</div><div class="line"></div></div>
+      </div>
+      <div class="dish-card"><img src="images/dish-7.jpg?v=3" alt="">
+        <div class="dish-name"><div class="cn">蜜汁玫瑰叉烧</div><div class="en">Rose Honey Char Siu</div><div class="line"></div></div>
+      </div>
+      <div class="dish-card"><img src="images/dish-8.jpg?v=3" alt="">
+        <div class="dish-name"><div class="cn">桂香白玉糕</div><div class="en">Osmanthus White Jade Cake</div><div class="line"></div></div>
+      </div>
     </div>
     <div class="showcase-roll bottom"></div>
   </div>

@@ -224,7 +224,10 @@ input,textarea,select{font-family:inherit}
   border-radius:10px;padding:13px 18px;
   box-shadow:0 10px 28px rgba(47,58,52,.35);
   border:1px solid rgba(176,154,104,.5);
+  opacity:0;pointer-events:none;transform:translateY(18px);
+  transition:opacity .28s ease,transform .28s ease;
 }
+.float-cart.show{opacity:1;pointer-events:auto;transform:none}
 @keyframes pop{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
 .float-cart .total{display:flex;align-items:center;gap:4px;flex-shrink:0;background:#e5c878;color:#4c3316;padding:0 14px;height:46px;border-radius:8px;cursor:pointer;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.22);transition:transform .15s,background .15s;white-space:nowrap}
 .float-cart .total b{color:#9e3b2c;font-size:16px;margin-left:2px}
@@ -981,6 +984,7 @@ function addToCart(id, delta) {
 function renderCart() {
   const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
   const n = ids.reduce((a, id) => a + state.cart[id], 0);
+  $("floatCart").classList.toggle("show", n > 0);
   $("fcCount").textContent = n;
   $("fcTotal").textContent = fmt(totalPrice());
   $("drawerTotal").textContent = fmt(totalPrice());

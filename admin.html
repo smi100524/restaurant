@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>拾味小馆 · 菜单管理</title>
+<title>赛尔美餐厅 · 菜单管理</title>
 <style>
 :root{
   --bg:#f4eddf;
@@ -948,7 +948,7 @@ $("exportBtn").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "拾味小馆-菜单备份.json";
+  a.download = "赛尔美餐厅-菜单备份.json";
   document.body.appendChild(a);
   a.click();
   a.remove();

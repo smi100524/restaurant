@@ -226,8 +226,9 @@ input,textarea,select{font-family:inherit}
   border:1px solid rgba(176,154,104,.5);
 }
 @keyframes pop{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
-.float-cart .total{font-size:13px;color:#d5dccb;cursor:pointer;padding:6px 8px;margin-left:-8px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.float-cart .total:active{background:rgba(255,255,255,.12)}
+.float-cart .total{display:flex;align-items:center;gap:5px;background:#e5c878;color:#4c3316;padding:9px 14px;border-radius:8px;cursor:pointer;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.22);transition:transform .15s,background .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.float-cart .total b{color:#9e3b2c;font-size:16px;margin-left:2px}
+.float-cart .total:active{transform:scale(.97);background:#d9b964}
 .float-cart .total b{font-size:21px;color:#e5c878;margin-left:6px;font-weight:700}
 .checkout-btn{
   background:var(--cinnabar);color:#f6efe0;

@@ -1334,9 +1334,30 @@ async function sendEmail(cfg, params) {
     return resp.ok;
   } catch (e) { clearTimeout(timer); return false; }
 }
+let settingsCache = {};
+async function getSetting(key) {
+  if (settingsCache[key] !== undefined) return settingsCache[key];
+  try {
+    const rows = await sbFetch("settings?key=eq." + key + "&select=value");
+    settingsCache[key] = (rows && rows.length) ? rows[0].value : null;
+    return settingsCache[key];
+  } catch (e) { return null; }
+}
+async function setSetting(key, value) {
+  settingsCache[key] = value;
+  try {
+    await sbFetch("settings?key=eq." + key, { method: "DELETE" });
+    await sbFetch("settings", { method: "POST", body: JSON.stringify([{ key: key, value: value }]) });
+    return true;
+  } catch (e) { return false; }
+}
 async function loadEmailForm() {
   let c = {};
-  try { c = (await idbGet("emailConfig")) || {}; } catch (e) {}
+  try {
+    const v = await getSetting("email_config");
+    if (v) { try { c = JSON.parse(v) || {}; } catch (e) {} }
+  } catch (e) {}
+  if (!Object.keys(c).length) { try { c = (await idbGet("emailConfig")) || {}; } catch (e) {} }
   $("emTo").value = c.toEmail || "money477@qq.com";
   $("emService").value = c.serviceId || "service_oy16t9k";
   $("emTemplate").value = c.templateId || "template_woszpok";
@@ -1351,13 +1372,16 @@ function readEmailForm() {
   };
 }
 $("emSave").addEventListener("click", async () => {
-  await idbSet("emailConfig", readEmailForm());
+  const cfg = readEmailForm();
+  await setSetting("email_config", JSON.stringify(cfg));
+  await idbSet("emailConfig", cfg);
   $("emStatus").textContent = "已保存 ✓";
   toast("邮件设置已保存 ✓");
 });
 $("emTest").addEventListener("click", async () => {
   const cfg = readEmailForm();
   if (!cfg.serviceId || !cfg.templateId || !cfg.publicKey) return toast("请先填写 EmailJS 三项配置");
+  await setSetting("email_config", JSON.stringify(cfg));
   await idbSet("emailConfig", cfg);
   $("emStatus").textContent = "正在发送…";
   const ok = await sendEmail(cfg, {
@@ -1370,12 +1394,19 @@ $("emTest").addEventListener("click", async () => {
 
 /* ============ 管理端登录 ============ */
 const DEFAULT_PW = "123456";
-function getAdminPw() { try { return localStorage.getItem("swxc_admin_pw") || DEFAULT_PW; } catch (e) { return DEFAULT_PW; } }
+async function getAdminPw() {
+  try {
+    const v = await getSetting("admin_password");
+    if (v) return v;
+  } catch (e) {}
+  try { return localStorage.getItem("swxc_admin_pw") || DEFAULT_PW; } catch (e) { return DEFAULT_PW; }
+}
 function isLoggedIn() {
   try { return sessionStorage.getItem("swxc_admin_in") === "1"; } catch (e) { return false; }
 }
-function tryLogin() {
-  if ($("loginPw").value === getAdminPw()) {
+async function tryLogin() {
+  const pw = await getAdminPw();
+  if ($("loginPw").value === pw) {
     try { sessionStorage.setItem("swxc_admin_in", "1"); } catch (e) {}
     $("loginView").style.display = "none";
     const w = document.querySelector(".wrap");
@@ -1399,13 +1430,15 @@ function logout() {
 }
 $("loginPw").addEventListener("keydown", e => { if (e.key === "Enter") tryLogin(); });
 $("logoutBtn2").addEventListener("click", logout);
-$("pwSave").addEventListener("click", () => {
+$("pwSave").addEventListener("click", async () => {
   const old = $("pwOld").value;
   const n1 = $("pwNew").value;
   const n2 = $("pwNew2").value;
-  if (old !== getAdminPw()) return toast("当前密码不正确");
+  const cur = await getAdminPw();
+  if (old !== cur) return toast("当前密码不正确");
   if (!n1 || n1.length < 4) return toast("新密码至少 4 位");
   if (n1 !== n2) return toast("两次输入的新密码不一致");
+  await setSetting("admin_password", n1);
   try { localStorage.setItem("swxc_admin_pw", n1); } catch (e) {}
   $("pwOld").value = ""; $("pwNew").value = ""; $("pwNew2").value = "";
   toast("密码已修改 ✓");

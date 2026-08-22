@@ -848,6 +848,12 @@ async function loadData() {
 }/* ============ 邮件通知 ============ */
 let emailCfg = { serviceId: "service_oy16t9k", templateId: "template_woszpok", publicKey: "-3Zj_cN0d03-uZoMt", toEmail: "money477@qq.com" };
 async function loadEmailCfg() {
+  let cloud = null;
+  try {
+    const rows = await sbFetch("settings?key=eq.email_config&select=value");
+    if (rows && rows.length) { try { cloud = JSON.parse(rows[0].value); } catch (e) {} }
+  } catch (e) {}
+  if (cloud && typeof cloud === "object") { emailCfg = Object.assign({}, emailCfg, cloud); return; }
   try { const c = await idbGet("emailConfig"); if (c) emailCfg = Object.assign(emailCfg, c); } catch (e) {}
 }
 async function sendEmail(params) {

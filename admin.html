@@ -1513,8 +1513,8 @@ async function loadHomeEditor() {
   let rows = null;
   try { rows = await sbFetch("home_cards?select=*&order=sort"); } catch (e) { rows = null; }
   if (Array.isArray(rows) && rows.length) {
-    homeRooms = rows.filter(r => r.type === "room").map(r => ({ name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "", _autoEn: true }));
-    homeDishes = rows.filter(r => r.type === "dish").map(r => ({ name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "", _autoEn: true }));
+    homeRooms = rows.filter(r => r.type === "room").map(r => ({ id: r.id, name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "", _autoEn: true }));
+    homeDishes = rows.filter(r => r.type === "dish").map(r => ({ id: r.id, name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "", _autoEn: true }));
   } else {
     homeRooms = HOME_DEFAULTS.rooms.map(x => ({ ...x, _autoEn: true }));
     homeDishes = HOME_DEFAULTS.dishes.map(x => ({ ...x, _autoEn: true }));
@@ -1607,12 +1607,18 @@ function bindHomeEditor() {
 async function saveHome() {
   try {
     const rows = [
-      ...homeRooms.map((r, i) => ({ type: "room", sort: i, name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "" })),
-      ...homeDishes.map((d, i) => ({ type: "dish", sort: i, name_cn: d.name_cn || "", name_en: d.name_en || "", image: d.image || "" }))
+      ...homeRooms.map((r, i) => ({ id: r.id || null, type: "room", sort: i, name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "" })),
+      ...homeDishes.map((d, i) => ({ id: d.id || null, type: "dish", sort: i, name_cn: d.name_cn || "", name_en: d.name_en || "", image: d.image || "" }))
     ];
-    await sbFetch("home_cards?id=gt.0", { method: "DELETE" });
-    if (rows.length) await sbFetch("home_cards", { method: "POST", body: JSON.stringify(rows) });
-    toast("首页内容已保存 ✓");
+    const withId = rows.filter(r => r.id != null);
+    const withoutId = rows.filter(r => r.id == null);
+    if (withId.length) await sbFetch("home_cards", { method: "POST", body: JSON.stringify(withId), headers: { "Prefer": "resolution=merge-duplicates" }, timeout: 60000 });
+    if (withoutId.length) await sbFetch("home_cards", { method: "POST", body: JSON.stringify(withoutId), timeout: 60000 });
+    const cloud = await sbFetch("home_cards?select=id", { timeout: 20000 });
+    const localIds = rows.map(r => r.id).filter(id => id != null);
+    const stale = (cloud || []).map(c => c.id).filter(id => !localIds.includes(id));
+    for (const id of stale) await sbFetch("home_cards?id=eq." + id, { method: "DELETE", timeout: 20000 });
+    toast("首页内容已保存 ✓（已同步到云端）");
   } catch (err) {
     toast("保存失败：" + (err && err.message ? err.message : err));
   }

@@ -112,9 +112,11 @@ h1.cn{
 .book-btn.big{font-size:17px;padding:17px 58px}
 
 /* ===== 底部悬浮预订 ===== */
-.book-float{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:14px 20px calc(14px + env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(245,240,228,.94) 55%)}
+.book-float{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:14px 20px calc(14px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:12px;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(245,240,228,.94) 55%)}
 .book-float-btn{pointer-events:auto;background:var(--celadon);color:#f6f1e2;font-size:16px;letter-spacing:6px;padding:13px 48px;border-radius:999px;border:1px solid rgba(255,255,255,.4);box-shadow:0 10px 26px rgba(47,58,52,.3);transition:all .2s}
 .book-float-btn:hover{background:var(--celadon-deep);transform:translateY(-2px)}
+.book-float-btn.ghost{background:transparent;color:var(--celadon-deep);border:1px solid var(--celadon);box-shadow:none}
+.book-float-btn.ghost:hover{background:rgba(95,127,121,.12)}
 
 /* ===== 包间展示 ===== */
 .rooms{padding:20px 20px 46px;text-align:center}
@@ -328,6 +330,7 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
 
 <!-- 底部悬浮预订 -->
 <div class="book-float">
+  <button class="book-float-btn ghost" id="myBookBtn" type="button">我的预订</button>
   <button class="book-float-btn" id="bookBtn" type="button">点击预订</button>
 </div>
 
@@ -415,7 +418,8 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
 
 <div class="toast" id="toast"></div><script src="lib/dept-picker.js"></script>
 <script src="lib/datetime-picker.js"></script>
-<script src="lib/booking-utils.js"></script><script>
+<script src="lib/booking-utils.js"></script>
+<script src="lib/my-bookings.js"></script><script>
 /* ============ 小工具 ============ */
 const $ = id => document.getElementById(id);
 

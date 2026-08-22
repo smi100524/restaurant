@@ -226,14 +226,15 @@ input,textarea,select{font-family:inherit}
   border:1px solid rgba(176,154,104,.5);
 }
 @keyframes pop{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
-.float-cart .total{display:flex;align-items:center;gap:5px;background:#e5c878;color:#4c3316;padding:9px 14px;border-radius:8px;cursor:pointer;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.22);transition:transform .15s,background .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.float-cart .total{display:flex;align-items:center;gap:4px;flex-shrink:0;background:#e5c878;color:#4c3316;padding:0 14px;height:46px;border-radius:8px;cursor:pointer;font-weight:700;box-shadow:0 3px 10px rgba(0,0,0,.22);transition:transform .15s,background .15s;white-space:nowrap}
 .float-cart .total b{color:#9e3b2c;font-size:16px;margin-left:2px}
 .float-cart .total:active{transform:scale(.97);background:#d9b964}
 .float-cart .total b{font-size:21px;color:#e5c878;margin-left:6px;font-weight:700}
 .checkout-btn{
   background:var(--cinnabar);color:#f6efe0;
-  padding:10px 24px;border-radius:5px;font-weight:700;font-size:14px;letter-spacing:2px;
+  padding:0 22px;height:46px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:2px;
   box-shadow:0 4px 10px rgba(158,59,44,.3);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;
 }
 /* ===== 抽屉 ===== */
 .overlay{
@@ -416,10 +417,10 @@ input,textarea,select{font-family:inherit}
   .drawer-foot{padding:12px 16px 16px}
   .cart-list{padding:8px 16px}
   .del-btn{padding:6px}
-  .float-cart{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:11px 14px}
-  .float-cart .total{font-size:12px}
-  .float-cart .total b{font-size:19px}
-  .checkout-btn{padding:10px 18px;font-size:13px}
+  .float-cart{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));padding:10px 12px;gap:8px}
+  .float-cart .total{font-size:12px;height:42px;padding:0 12px}
+  .float-cart .total b{font-size:15px}
+  .checkout-btn{height:42px;padding:0 16px;font-size:13px}
 }
 </style>
 </head>

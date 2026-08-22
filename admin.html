@@ -667,6 +667,15 @@ function idbDelete(key) {
     }).catch(reject);
   });
 }
+async function mergedCats(dishes) {
+  let stored = [];
+  try {
+    const v = await getSetting("categories");
+    if (v) { try { stored = JSON.parse(v); } catch (e) {} }
+  } catch (e) {}
+  const dishCats = [...new Set(dishes.map(d => d.cat))];
+  return [...new Set([...(Array.isArray(stored) ? stored : []), ...dishCats])];
+}
 async function loadData() {
   let ok = false;
   try {
@@ -682,15 +691,14 @@ async function loadData() {
         desc: r.description || "", emoji: r.emoji || "🍽️",
         tags: Array.isArray(r.tags) ? r.tags : [], img: r.img || ""
       }));
-      data.categories = [...new Set(data.dishes.map(d => d.cat))];
+      data.categories = await mergedCats(data.dishes);
       ok = true;
     }
   } catch (e) { ok = false; }
   if (!ok) {
     data.dishes = DEFAULT_MENU.slice();
-    data.categories = [...new Set(DEFAULT_MENU.map(d => d.cat))];
+    data.categories = await mergedCats(data.dishes);
   }
-  if (!data.categories.length) data.categories = [...new Set(data.dishes.map(d => d.cat))];
 }
 async function saveData() {
   try {
@@ -707,6 +715,7 @@ async function saveData() {
     for (const id of stale) {
       await sbFetch("menu?id=eq." + id, { method: "DELETE", timeout: 20000 });
     }
+    await setSetting("categories", JSON.stringify(data.categories));
     toast("已保存 ✓（已同步到云端）");
   } catch (e) {
     await idbSet("menu", { categories: data.categories, dishes: data.dishes });

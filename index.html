@@ -112,8 +112,8 @@ h1.cn{
 .book-btn.big{font-size:17px;padding:17px 58px}
 
 /* ===== 底部悬浮预订 ===== */
-.book-float{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:center;gap:12px;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(245,240,228,.94) 55%)}
-.book-float-btn{pointer-events:auto;flex:1;min-width:0;background:var(--celadon);color:#f6f1e2;font-size:17px;letter-spacing:8px;padding:16px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.4);box-shadow:0 10px 26px rgba(47,58,52,.3);transition:all .2s;text-align:center}
+.book-float{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;justify-content:center;align-items:center;gap:12px;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(245,240,228,.94) 55%)}
+.book-float-btn{pointer-events:auto;flex:0 1 auto;width:min(74%,340px);background:var(--celadon);color:#f6f1e2;font-size:16px;letter-spacing:6px;padding:14px 22px;border-radius:14px;border:1px solid rgba(255,255,255,.4);box-shadow:0 10px 26px rgba(47,58,52,.3);transition:all .2s;text-align:center}
 .book-float-btn:hover{background:var(--celadon-deep);transform:translateY(-2px)}
 
 /* ===== 包间展示 ===== */

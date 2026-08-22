@@ -26,6 +26,7 @@ create table if not exists orders (
   book_time text not null default '',
   people int not null default 1,
   note text not null default '',
+  room text not null default '',
   items jsonb not null default '[]'::jsonb,
   total numeric not null default 0,
   ts bigint not null default 0,
@@ -43,6 +44,7 @@ create table if not exists reservations (
   book_time text not null default '',
   people int not null default 1,
   note text not null default '',
+  room text not null default '',
   ts bigint not null default 0,
   created_at timestamptz not null default now()
 );

@@ -528,6 +528,15 @@ input,textarea,select{font-family:inherit}
             <input id="fNote" type="text" placeholder="口味偏好、忌口等" autocomplete="off">
           </div>
         </div>
+        <div class="field-row">
+          <div class="field">
+            <label>包间 *</label>
+            <div class="room-pick">
+              <label class="room-opt"><input type="radio" name="fRoom" value="中式包间" checked><span>中式包间</span></label>
+              <label class="room-opt"><input type="radio" name="fRoom" value="西式包间"><span>西式包间</span></label>
+            </div>
+          </div>
+        </div>
         <div class="sec-title">预订菜单</div>
         <div class="order-items" id="orderItems"></div>
         <div class="summary" id="orderSummary"></div>
@@ -577,6 +586,14 @@ input,textarea,select{font-family:inherit}
 </div>
 
 <style>
+/* ===== 包间选择 ===== */
+.room-pick{display:flex;gap:10px;width:100%}
+.room-opt{flex:1;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fffdf6;cursor:pointer;font-size:14px;color:var(--ink);transition:all .15s}
+.room-opt input{display:none}
+.room-opt span::before{content:"";display:inline-block;width:15px;height:15px;border:1px solid var(--line);border-radius:50%;margin-right:6px;vertical-align:-2px;transition:all .15s}
+.room-opt:has(input:checked){border-color:var(--celadon);background:#eef3ef;color:var(--celadon-deep)}
+.room-opt:has(input:checked) span::before{border-color:var(--celadon);background:radial-gradient(circle,var(--celadon) 0 40%,#fff 45%)}
+
 .export-overlay{position:fixed;inset:0;background:rgba(20,28,24,.45);display:none;align-items:center;justify-content:center;z-index:999;padding:20px}
 .export-card{background:#fffdf7;border:1px solid #d8d2c4;border-radius:12px;max-width:420px;width:100%;padding:26px 24px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.18)}
 .export-title{font-size:19px;font-weight:700;color:#2f5d50;margin-bottom:10px}
@@ -599,6 +616,7 @@ input,textarea,select{font-family:inherit}
 </div>
 <div class="toast" id="toast"></div><script src="lib/exceljs.min.js"></script>
 <script src="lib/dept-picker.js"></script>
+<script src="lib/booking-utils.js"></script>
 <script src="lib/datetime-picker.js"></script>
 <script>
 /* ============ 默认菜单（管理页没保存过时使用） ============ */
@@ -660,7 +678,7 @@ async function buildBaojianXlsx(o) {
   ws.mergeCells("A1:E1");
   const r2 = ws.getRow(2); r2.height = 33;
   const c2 = r2.getCell(1);
-  c2.value = "用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + "　　　" + "用餐人数：" + o.people + "　客户：" + (o.name || "");
+  c2.value = "用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + (o.room || "中式包间") + "　" + "用餐人数：" + o.people + "　客户：" + (o.name || "");
   c2.font = { name: FONT, size: 12, bold: true };
   c2.alignment = { horizontal: "left", vertical: "middle" };
   ws.mergeCells("A2:E2");
@@ -1073,6 +1091,9 @@ async function openCheckout() {
     $("fTime").value = res.time || "";
     $("fPeople").value = res.people || 2;
     $("fNote").value = res.note || "";
+    const roomVal = res.room || "中式包间";
+    const roomInput = document.querySelector('input[name="fRoom"][value="' + roomVal + '"]') || document.querySelector('input[name="fRoom"]');
+    if (roomInput) roomInput.checked = true;
   }
   renderOrderItems();
   buildSummary();
@@ -1104,15 +1125,18 @@ $("placeOrder").addEventListener("click", async () => {
   const time = $("fTime").value;
   const people = parseInt($("fPeople").value, 10) || 1;
   const note = $("fNote").value.trim();
+  const room = (document.querySelector('input[name="fRoom"]:checked') || {}).value || "中式包间";
   const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
   const items = ids.map(id => { const d = MENU.find(x => x.id === id); return { id, name: d.name, price: d.price, qty: state.cart[id] }; });
   const orderNo = "ORD" + Date.now().toString().slice(-6);
-  const order = { id: Date.now(), no: orderNo, name, phone, dept, by, date, time, people, note, items, total: totalPrice(), ts: Date.now() };
+  const order = { id: Date.now(), no: orderNo, name, phone, dept, by, date, time, people, note, room, items, total: totalPrice(), ts: Date.now() };
+  const conflict = await checkRoomConflict(order.room, order.date, order.time);
+  if (conflict) { toast(conflict); return; }
   let cloudOk = false;
   try {
     await sbFetch("orders", {
       method: "POST",
-      body: JSON.stringify([{ id: order.id, no: order.no, name: order.name, phone: order.phone, dept: order.dept, booker: order.by, book_date: order.date, book_time: order.time, people: order.people, note: order.note, items: order.items, total: order.total, ts: order.ts }])
+      body: JSON.stringify([{ id: order.id, no: order.no, name: order.name, phone: order.phone, dept: order.dept, booker: order.by, book_date: order.date, book_time: order.time, people: order.people, note: order.note, room: order.room, items: order.items, total: order.total, ts: order.ts }])
     });
     cloudOk = true;
   } catch (err) { cloudOk = false; }

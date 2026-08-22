@@ -128,6 +128,14 @@ h1.cn{
 .room-name{margin-top:14px;font-size:17px;font-weight:700;letter-spacing:4px;color:var(--ink)}
 
 /* ===== 特色 ===== */
+/* ===== 包间选择 ===== */
+.room-pick{display:flex;gap:10px;width:100%}
+.room-opt{flex:1;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fffdf6;cursor:pointer;font-size:14px;color:var(--ink);transition:all .15s}
+.room-opt input{display:none}
+.room-opt span::before{content:"";display:inline-block;width:15px;height:15px;border:1px solid var(--line);border-radius:50%;margin-right:6px;vertical-align:-2px;transition:all .15s}
+.room-opt:has(input:checked){border-color:var(--celadon);background:#eef3ef;color:var(--celadon-deep)}
+.room-opt:has(input:checked) span::before{border-color:var(--celadon);background:radial-gradient(circle,var(--celadon) 0 40%,#fff 45%)}
+
 /* ===== 菜品展示 ===== */
 .showcase{padding:58px 20px 34px;text-align:center}
 .showcase-title{font-family:"Kaiti SC","KaiTi","楷体",serif;font-size:21px;letter-spacing:8px;color:var(--ink);margin-bottom:6px}
@@ -360,6 +368,15 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
         </div>
         <div class="field-row">
           <div class="field">
+            <label>包间 *</label>
+            <div class="room-pick">
+              <label class="room-opt"><input type="radio" name="bRoom" value="中式包间" checked><span>中式包间</span></label>
+              <label class="room-opt"><input type="radio" name="bRoom" value="西式包间"><span>西式包间</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
             <label>用餐日期 *</label>
             <input id="bDate" type="date" data-dtp>
           </div>
@@ -397,7 +414,8 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
 </div>
 
 <div class="toast" id="toast"></div><script src="lib/dept-picker.js"></script>
-<script src="lib/datetime-picker.js"></script><script>
+<script src="lib/datetime-picker.js"></script>
+<script src="lib/booking-utils.js"></script><script>
 /* ============ 小工具 ============ */
 const $ = id => document.getElementById(id);
 
@@ -487,7 +505,8 @@ function readForm() {
     date: $("bDate").value,
     time: $("bTime").value,
     people: parseInt($("bPeople").value, 10) || 1,
-    note: $("bNote").value.trim()
+    note: $("bNote").value.trim(),
+    room: (document.querySelector('input[name="bRoom"]:checked') || {}).value || "中式包间"
   };
 }
 function renderConfirm(r) {
@@ -499,6 +518,7 @@ function renderConfirm(r) {
     ["用餐日期", r.date],
     ["用餐时间", r.time],
     ["用餐人数", r.people + " 人"],
+    ["包间", r.room || "中式包间"],
     ["备注", r.note || "无"]
   ];
   $("rList").innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><b>${esc(v)}</b></div>`).join("");
@@ -522,11 +542,13 @@ $("bookBack").addEventListener("click", () => {
 $("bookConfirmBtn").addEventListener("click", async () => {
   if (!pending) return;
   const rec = { id: Date.now(), ...pending, ts: Date.now() };
+  const conflict = await checkRoomConflict(rec.room, rec.date, rec.time);
+  if (conflict) { toast(conflict); return; }
   let cloudOk = false;
   try {
     await sbFetch("reservations", {
       method: "POST",
-      body: JSON.stringify([{ id: rec.id, name: rec.name, phone: rec.phone, dept: rec.dept || "", booker: rec.by || "", book_date: rec.date || "", book_time: rec.time || "", people: rec.people, note: rec.note || "", ts: rec.ts }])
+      body: JSON.stringify([{ id: rec.id, name: rec.name, phone: rec.phone, dept: rec.dept || "", booker: rec.by || "", book_date: rec.date || "", book_time: rec.time || "", people: rec.people, note: rec.note || "", room: rec.room || "中式包间", ts: rec.ts }])
     });
     cloudOk = true;
   } catch (err) { cloudOk = false; }

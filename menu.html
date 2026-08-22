@@ -238,6 +238,7 @@ input,textarea,select{font-family:inherit}
   box-shadow:0 4px 10px rgba(158,59,44,.3);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;
 }
+.checkout-btn .fc-total{margin-left:8px;font-size:16px;font-weight:800;letter-spacing:0;color:#ffd98a}
 /* ===== 抽屉 ===== */
 .overlay{
   position:fixed;inset:0;background:rgba(40,52,46,.45);
@@ -423,6 +424,7 @@ input,textarea,select{font-family:inherit}
   .float-cart .total{font-size:12px;height:42px;padding:0 12px}
   .fc-badge{min-width:19px;height:19px;font-size:12px;margin-left:5px}
   .checkout-btn{height:42px;padding:0 16px;font-size:13px}
+  .checkout-btn .fc-total{font-size:14px;margin-left:6px}
 }
 </style>
 </head>
@@ -464,7 +466,7 @@ input,textarea,select{font-family:inherit}
 <!-- 底部悬浮购物车 -->
 <div class="float-cart" id="floatCart">
   <div class="total" id="cartInfo" role="button" title="查看已选菜品">已选菜品<span class="fc-badge" id="fcCount">0</span></div>
-  <button class="checkout-btn" id="fcBtn" type="button">提交预订菜单</button>
+  <button class="checkout-btn" id="fcBtn" type="button">提交预订菜单<span class="fc-total" id="fcTotal">¥0</span></button>
 </div>
 
 <!-- 遮罩 -->
@@ -985,6 +987,7 @@ function renderCart() {
   const n = ids.reduce((a, id) => a + state.cart[id], 0);
   $("floatCart").classList.toggle("show", n > 0);
   $("fcCount").textContent = n;
+  $("fcTotal").textContent = fmt(totalPrice());
   $("drawerTotal").textContent = fmt(totalPrice());
   const listEl = $("cartList");
   if (!ids.length) {

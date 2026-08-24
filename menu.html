@@ -1129,7 +1129,7 @@ function renderAll() { renderMenu(); renderCart(); }
 
 function soupHint(id) {
   const sd = MENU.find(x => x.id === id);
-  if (sd && ["汤羹", "汤"].includes(sd.cat)) toast("温馨提示：汤为汤盅供应，建议按人头点，每人一盅");
+  if (sd && ["汤羹", "汤"].includes(sd.cat)) toast("温馨提示：汤为汤盅供应，建议按用餐人数点，每人一盅");
 }
 
 /* ============ 事件：加菜 / 减菜 / 删除 ============ */
@@ -1152,7 +1152,7 @@ $("cats").addEventListener("click", e => {
   state.cat = chip.dataset.cat;
   renderAll();
   if (chip.dataset.cat === "汤羹" || chip.dataset.cat === "汤") {
-    toast("温馨提示：汤为汤盅供应，建议按人头点，每人一盅");
+    toast("温馨提示：汤为汤盅供应，建议按用餐人数点，每人一盅");
   }
 });
 let searchTimer;
@@ -1240,7 +1240,7 @@ function getOrderHints() {
     hints.push("您还没有点：" + missing.join("、") + "，建议补充。");
   const soupQty = MENU.filter(d => ["汤羹", "汤"].includes(d.cat) && state.cart[d.id]).reduce((s, d) => s + state.cart[d.id], 0);
   if (soupQty > 0 && soupQty < people) {
-    hints.push("汤盅按人头点，您 " + people + " 人用餐，建议点 " + people + " 盅（当前已点 " + soupQty + " 盅）。");
+    hints.push("汤盅按用餐人数点，您 " + people + " 人用餐，建议点 " + people + " 盅（当前已点 " + soupQty + " 盅）。");
   }
   }
   return hints;
@@ -1312,7 +1312,7 @@ $("placeOrder").addEventListener("click", async () => {
   try { suppressed = sessionStorage.getItem("swxc_no_hints") === "1"; } catch (e) {}
   if (soupQty > 0 && soupQty < people && !suppressed) {
     pendingPlace = true;
-    $("hintText").innerHTML = '<p style="margin:0">汤盅按人头点，您 ' + people + ' 人用餐，建议点 ' + people + ' 盅（当前已点 ' + soupQty + ' 盅）。</p>';
+    $("hintText").innerHTML = '<p style="margin:0">汤盅按用餐人数点，您 ' + people + ' 人用餐，建议点 ' + people + ' 盅（当前已点 ' + soupQty + ' 盅）。</p>';
     $("hintModal").classList.add("show");
     document.body.style.overflow = "hidden";
     return;

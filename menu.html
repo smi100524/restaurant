@@ -498,6 +498,18 @@ input,textarea,select{font-family:inherit}
   </div>
 </aside>
 
+<!-- 点餐提示弹窗 -->
+<div class="modal" id="hintModal" style="z-index:130">
+  <div class="modal-card" style="max-width:340px">
+    <div class="modal-head"><h3>点餐提示</h3></div>
+    <div class="modal-body" id="hintText" style="font-size:14px;color:var(--ink);line-height:1.8"></div>
+    <div class="modal-foot" style="display:flex;gap:10px">
+      <button class="ghost" id="hintNo" type="button" style="flex:1;padding:12px;border:1px solid var(--line);border-radius:6px;color:var(--sub);background:#fff">否，不再提示</button>
+      <button class="submit-btn" id="hintYes" type="button" style="flex:1;width:auto;padding:12px">是，继续</button>
+    </div>
+  </div>
+</div>
+
 <!-- 结算弹窗 -->
 <div class="modal" id="checkoutModal">
   <div class="modal-card">
@@ -1191,8 +1203,25 @@ function closeCheckout() {
 $("closeModal").addEventListener("click", closeCheckout);
 modal.addEventListener("click", e => { if (e.target === modal) closeCheckout(); });
 $("closeModal2").addEventListener("click", closeCheckout);
-$("toConfirm").addEventListener("click", () => {
-  if (!countItems()) { toast("请先选择菜品哦～"); return; }
+function getOrderHints() {
+  const hints = [];
+  const people = parseInt($("fPeople").value, 10) || 1;
+  const cnt = countItems();
+  const suggested = people + 2;
+  if (cnt < suggested) {
+    hints.push("您 " + people + " 人用餐，正常点菜数量约 " + suggested + " 道（当前已点 " + cnt + " 道）。");
+  }
+  const cats = new Set(MENU.filter(d => state.cart[d.id]).map(d => d.cat));
+  const missing = [];
+  if (!["汤羹", "汤"].some(c => cats.has(c))) missing.push("汤");
+  if (!cats.has("主食")) missing.push("主食");
+  if (!cats.has("饮品")) missing.push("饮品");
+  if (missing.length) {
+    hints.push("您还没有点：" + missing.join("、") + "，建议补充。");
+  }
+  return hints;
+}
+function proceedToConfirm() {
   const room = (document.querySelector('input[name="fRoom"]:checked') || {}).value || "西式包间";
   const info = [
     ["客户", $("fName").value.trim() || "客人"],
@@ -1209,6 +1238,29 @@ $("toConfirm").addEventListener("click", () => {
   buildSummary();
   $("stepInfo").style.display = "none";
   $("stepConfirm").style.display = "block";
+}
+function closeHint() {
+  $("hintModal").classList.remove("show");
+  document.body.style.overflow = "";
+}
+$("hintYes").addEventListener("click", () => { closeHint(); proceedToConfirm(); });
+$("hintNo").addEventListener("click", () => {
+  try { sessionStorage.setItem("swxc_no_hints", "1"); } catch (e) {}
+  closeHint();
+  proceedToConfirm();
+});
+$("toConfirm").addEventListener("click", () => {
+  if (!countItems()) { toast("请先选择菜品哦～"); return; }
+  let suppressed = false;
+  try { suppressed = sessionStorage.getItem("swxc_no_hints") === "1"; } catch (e) {}
+  const hints = getOrderHints();
+  if (hints.length && !suppressed) {
+    $("hintText").innerHTML = hints.map(h => '<p style="margin:0 0 10px">' + esc(h) + '</p>').join("");
+    $("hintModal").classList.add("show");
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  proceedToConfirm();
 });
 
 let lastOrder = null;

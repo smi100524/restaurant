@@ -1146,6 +1146,9 @@ $("cats").addEventListener("click", e => {
   if (!chip) return;
   state.cat = chip.dataset.cat;
   renderAll();
+  if (chip.dataset.cat === "汤羹" || chip.dataset.cat === "汤") {
+    toast("温馨提示：汤为汤盅供应，建议按人头点，每人一盅");
+  }
 });
 let searchTimer;
 $("searchInput").addEventListener("input", e => {
@@ -1259,11 +1262,11 @@ function closeHint() {
   $("hintModal").classList.remove("show");
   document.body.style.overflow = "";
 }
-$("hintYes").addEventListener("click", () => { closeHint(); proceedToConfirm(); });
+$("hintYes").addEventListener("click", () => { closeHint(); if (pendingPlace) { pendingPlace = false; doPlaceOrder(); } else { proceedToConfirm(); } });
 $("hintNo").addEventListener("click", () => {
   try { sessionStorage.setItem("swxc_no_hints", "1"); } catch (e) {}
   closeHint();
-  proceedToConfirm();
+  if (pendingPlace) { pendingPlace = false; doPlaceOrder(); } else { proceedToConfirm(); }
 });
 $("toConfirm").addEventListener("click", () => {
   if (!countItems()) { toast("请先选择菜品哦～"); return; }
@@ -1296,7 +1299,22 @@ $("conflictBack").addEventListener("click", () => {
 });
 
 let lastOrder = null;
+let pendingPlace = false;
 $("placeOrder").addEventListener("click", async () => {
+  const people = parseInt($("fPeople").value, 10) || 1;
+  const soupQty = MENU.filter(d => ["汤羹", "汤"].includes(d.cat) && state.cart[d.id]).reduce((s, d) => s + state.cart[d.id], 0);
+  let suppressed = false;
+  try { suppressed = sessionStorage.getItem("swxc_no_hints") === "1"; } catch (e) {}
+  if (soupQty > 0 && soupQty < people && !suppressed) {
+    pendingPlace = true;
+    $("hintText").innerHTML = '<p style="margin:0">汤盅按人头点，您 ' + people + ' 人用餐，建议点 ' + people + ' 盅（当前已点 ' + soupQty + ' 盅）。</p>';
+    $("hintModal").classList.add("show");
+    document.body.style.overflow = "hidden";
+    return;
+  }
+  await doPlaceOrder();
+});
+async function doPlaceOrder() {
   const name = $("fName").value.trim() || "客人";
   const phone = $("fPhone").value.trim();
   const dept = $("fDept").value.trim();
@@ -1332,7 +1350,6 @@ $("placeOrder").addEventListener("click", async () => {
   $("stepInfo").style.display = "none";
   $("stepConfirm").style.display = "none";
   $("successView").style.display = "block";
-
   const sent = await sendEmail({
     subject: "【赛尔美餐厅】新订单通知 " + order.no,
     message: "订单号：" + order.no + "\n客户：" + order.name + "\n联系电话：" + order.phone + "\n预订部门：" + (order.dept || "—") + "\n预订人：" + (order.by || "—") + "\n用餐日期：" + order.date + " " + order.time + "\n用餐人数：" + order.people + " 人\n备注：" + (order.note || "无") + "\n菜品：" + order.items.map(i => i.name + "×" + i.qty).join("、") + "\n合计：¥" + order.total + "\n包间菜单下载：https://smi100524.github.io/restaurant/menu.html?export=" + order.no,
@@ -1345,7 +1362,7 @@ $("placeOrder").addEventListener("click", async () => {
   state.cart = {};
   saveCart();
   $("fNote").value = ""; $("fName").value = ""; $("fPhone").value = ""; $("fDept").value = ""; $("fBy").value = "";
-});
+}
 function renderViewOrder(o) {
   $("viewOrderNo").textContent = "#" + o.no;
   const info = [

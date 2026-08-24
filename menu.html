@@ -847,10 +847,21 @@ function idbPut(key, val) {
     } catch (e) { reject(e); }
   });
 }
+async function loadMenuImagesAsync() {
+  try {
+    const imgRows = await sbFetch("menu?select=id,img&order=id");
+    if (!Array.isArray(imgRows) || !imgRows.length) return;
+    const imgMap = {};
+    imgRows.forEach(r => { imgMap[r.id] = r.img || ""; });
+    MENU.forEach(d => { if (imgMap[d.id]) d.img = imgMap[d.id]; });
+    renderMenu();
+  } catch (e) {}
+}
+
 async function loadData() {
   let ok = false;
   try {
-    const rows = await sbFetch("menu?select=*&order=id");
+    const rows = await sbFetch("menu?select=id,name,en,price,cat,emoji,tags,description&order=id");
     if (Array.isArray(rows)) {
       if (!rows.length) {
         const seed = DEFAULT_MENU.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji, tags: d.tags || [], img: d.img || "" }));
@@ -860,7 +871,7 @@ async function loadData() {
       MENU = rows.map(r => ({
         id: r.id, name: r.name, en: r.en || "", price: +r.price, cat: r.cat,
         desc: r.description || "", emoji: r.emoji || "🍽️",
-        tags: Array.isArray(r.tags) ? r.tags : [], img: r.img || ""
+        tags: Array.isArray(r.tags) ? r.tags : [], img: ""
       }));
       CATS = ["全部", ...new Set(MENU.map(d => d.cat))];
       ok = true;
@@ -872,6 +883,7 @@ async function loadData() {
   }
   // 清理购物车里已不存在的菜品
   Object.keys(state.cart).forEach(id => { if (!MENU.some(d => d.id === +id)) delete state.cart[id]; });
+  loadMenuImagesAsync();
 }/* ============ 邮件通知 ============ */
 let emailCfg = { serviceId: "service_oy16t9k", templateId: "template_woszpok", publicKey: "-3Zj_cN0d03-uZoMt", toEmail: "money477@qq.com" };
 async function loadEmailCfg() {

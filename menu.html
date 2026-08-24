@@ -271,7 +271,9 @@ input,textarea,select{font-family:inherit}
 .close-btn{font-size:20px;color:var(--sub);line-height:1}
 .cart-list{flex:1;overflow-y:auto;padding:10px 20px}
 .cart-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px dashed var(--line)}
-.cart-item .ce{font-size:32px;width:44px;text-align:center;flex:0 0 auto}
+.cart-item .ce{font-size:32px;width:44px;text-align:center;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.ci-img{width:44px;height:44px;object-fit:cover;border-radius:6px;display:block}
+.cart-item .ce .ce-fallback{font-size:32px;line-height:1}
 .cart-item .ci{flex:1;min-width:0}
 .cart-item .cn{font-size:15px;font-weight:700}
 .cart-item .cp{font-size:13px;color:var(--cinnabar);font-weight:700}
@@ -321,7 +323,9 @@ input,textarea,select{font-family:inherit}
   border-bottom:1px dashed var(--line);
 }
 .order-items .oi:last-child{border-bottom:none}
-.order-items .oe{font-size:26px;width:38px;text-align:center;flex:0 0 auto}
+.order-items .oe{font-size:26px;width:38px;text-align:center;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.order-items .ci-img{width:38px;height:38px;object-fit:cover;border-radius:5px;display:block}
+.order-items .oe .ce-fallback{font-size:26px;line-height:1}
 .order-items .on{flex:1;min-width:0;font-size:14px;font-weight:700}
 .order-items .op{color:var(--cinnabar);font-size:14px;font-weight:700;white-space:nowrap}
 .order-items .oi .del{color:#c0b29a;font-size:16px;flex:0 0 auto;padding:4px}
@@ -980,6 +984,19 @@ function renderMenu() {
   loadDishImages();
 }
 /* 没有上传图片的菜，自动找 images 文件夹里同编号的图片 */
+const dishImgCache = {};
+function dishImgSrc(d) {
+  if (d.img && d.img.trim()) return d.img;
+  if (dishImgCache[d.id]) return dishImgCache[d.id];
+  return "";
+}
+function dishIconHtml(d, cls) {
+  cls = cls || "ce";
+  const src = dishImgSrc(d);
+  const img = src ? `<img class="ci-img" src="${esc(src)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">` : "";
+  const fb = `<span class="ce-fallback" style="${src ? "display:none" : ""}">${d.emoji}</span>`;
+  return `<span class="${cls}${src ? " has-img" : ""}">${img}${fb}</span>`;
+}
 function loadDishImages() {
   document.querySelectorAll(".dish-img:not(.show)").forEach(img => tryLoadDishImage(img));
 }
@@ -991,7 +1008,7 @@ function tryLoadDishImage(imgEl) {
     if (tried >= exts.length) return;
     const ext = exts[tried++];
     const probe = new Image();
-    probe.onload = () => { imgEl.src = "images/" + id + "." + ext; imgEl.classList.add("show"); };
+    probe.onload = () => { dishImgCache[id] = "images/" + id + "." + ext; imgEl.src = dishImgCache[id]; imgEl.classList.add("show"); };
     probe.onerror = next;
     probe.src = "images/" + id + "." + ext;
   })();
@@ -1022,7 +1039,7 @@ function renderConfirmItems() {
   }
   el.innerHTML = ids.map(id => {
     const d = MENU.find(x => x.id === id);
-    return `<div class="oi static"><span class="oe">${d.emoji}</span><span class="on">${esc(d.name)}</span><span class="op">× ${state.cart[id]}</span><span class="op">¥${d.price * state.cart[id]}</span></div>`;
+    return `<div class="oi static">${dishIconHtml(d, "oe")}<span class="on">${esc(d.name)}</span><span class="op">× ${state.cart[id]}</span><span class="op">¥${d.price * state.cart[id]}</span></div>`;
   }).join("");
 }
 function renderCart() {
@@ -1042,7 +1059,7 @@ function renderCart() {
     if (!d) return "";
     return `
     <div class="cart-item">
-      <div class="ce">${d.emoji}</div>
+      ${dishIconHtml(d)}
       <div class="ci">
         <div class="cn">${esc(d.name)}</div>
         <div class="cp">¥${d.price} / 份</div>

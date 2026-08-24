@@ -1225,11 +1225,15 @@ function getOrderHints() {
   }
   const cats = new Set(MENU.filter(d => state.cart[d.id]).map(d => d.cat));
   const missing = [];
-  if (!["汤羹", "汤"].some(c => cats.has(c))) missing.push("汤");
+  if (!["汤羹", "汤"].some(c => cats.has(c))) missing.push("汤盅");
   if (!cats.has("主食")) missing.push("主食");
   if (!cats.has("饮品")) missing.push("饮品");
   if (missing.length) {
     hints.push("您还没有点：" + missing.join("、") + "，建议补充。");
+  const soupQty = MENU.filter(d => ["汤羹", "汤"].includes(d.cat) && state.cart[d.id]).reduce((s, d) => s + state.cart[d.id], 0);
+  if (soupQty > 0 && soupQty < people) {
+    hints.push("汤盅按人头点，您 " + people + " 人用餐，建议点 " + people + " 盅（当前已点 " + soupQty + " 盅）。");
+  }
   }
   return hints;
 }

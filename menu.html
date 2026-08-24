@@ -1127,6 +1127,11 @@ function renderCart() {
 }
 function renderAll() { renderMenu(); renderCart(); }
 
+function soupHint(id) {
+  const sd = MENU.find(x => x.id === id);
+  if (sd && ["汤羹", "汤"].includes(sd.cat)) toast("温馨提示：汤为汤盅供应，建议按人头点，每人一盅");
+}
+
 /* ============ 事件：加菜 / 减菜 / 删除 ============ */
 document.addEventListener("click", e => {
   const add = e.target.closest(".add-btn");
@@ -1134,8 +1139,8 @@ document.addEventListener("click", e => {
   const minus = e.target.closest(".minus");
   const del = e.target.closest(".del-btn");
   const del2 = e.target.closest(".del");
-  if (add) addToCart(+add.dataset.id, 1);
-  else if (plus) addToCart(+plus.dataset.id, 1);
+  if (add) { soupHint(+add.dataset.id); addToCart(+add.dataset.id, 1); }
+  else if (plus) { soupHint(+plus.dataset.id); addToCart(+plus.dataset.id, 1); }
   else if (minus) addToCart(+minus.dataset.id, -1);
   else if (del || del2) { addToCart(+(del || del2).dataset.id, -999); toast("已移除"); }
 });

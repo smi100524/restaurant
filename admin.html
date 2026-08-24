@@ -726,11 +726,20 @@ async function saveData() {
       headers: { "Prefer": "resolution=merge-duplicates" },
       timeout: 60000
     });
-    const cloud = await sbFetch("menu?select=id", { timeout: 20000 });
     const localIds = rows.map(r => r.id);
-    const stale = (cloud || []).map(c => c.id).filter(id => !localIds.includes(id));
-    for (const id of stale) {
-      await sbFetch("menu?id=eq." + id, { method: "DELETE", timeout: 20000 });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const cloud = await sbFetch("menu?select=id", { timeout: 20000 });
+        const stale = (cloud || []).map(c => c.id).filter(id => !localIds.includes(id));
+        if (!stale.length) break;
+        for (const id of stale) {
+          await sbFetch("menu?id=eq." + id, { method: "DELETE", timeout: 20000 });
+        }
+        break;
+      } catch (e2) {
+        if (attempt === 2) throw e2;
+        await new Promise(r => setTimeout(r, 1200));
+      }
     }
     await setSetting("categories", JSON.stringify(data.categories));
     toast("已保存 ✓（已同步到云端）");
@@ -738,7 +747,8 @@ async function saveData() {
     await idbSet("menu", { categories: data.categories, dishes: data.dishes });
     toast("已保存（云端同步失败，已存本机）");
   }
-}/* ============ 渲染 ============ */
+}
+/* ============ 渲染 ============ */
 function renderCats() {
   $("catList").innerHTML = data.categories.map(c => {
     const n = data.dishes.filter(d => d.cat === c).length;

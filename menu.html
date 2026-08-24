@@ -498,6 +498,18 @@ input,textarea,select{font-family:inherit}
   </div>
 </aside>
 
+<!-- 预订冲突弹窗 -->
+<div class="modal" id="conflictModal" style="z-index:140">
+  <div class="modal-card" style="max-width:340px">
+    <div class="modal-head"><h3>预订冲突</h3></div>
+    <div class="modal-body" id="conflictText" style="font-size:14px;color:var(--ink);line-height:1.8"></div>
+    <div class="modal-foot" style="display:flex;gap:10px">
+      <button class="ghost" id="conflictClose" type="button" style="flex:1;padding:12px;border:1px solid var(--line);border-radius:6px;color:var(--sub);background:#fff">知道了</button>
+      <button class="submit-btn" id="conflictBack" type="button" style="flex:1;width:auto;padding:12px">返回上一步改日期</button>
+    </div>
+  </div>
+</div>
+
 <!-- 点餐提示弹窗 -->
 <div class="modal" id="hintModal" style="z-index:130">
   <div class="modal-card" style="max-width:340px">
@@ -1263,6 +1275,22 @@ $("toConfirm").addEventListener("click", () => {
   proceedToConfirm();
 });
 
+function showConflict(msg) {
+  $("conflictText").textContent = msg;
+  $("conflictModal").classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+function closeConflict() {
+  $("conflictModal").classList.remove("show");
+  document.body.style.overflow = "";
+}
+$("conflictClose").addEventListener("click", closeConflict);
+$("conflictBack").addEventListener("click", () => {
+  closeConflict();
+  $("stepConfirm").style.display = "none";
+  $("stepInfo").style.display = "";
+});
+
 let lastOrder = null;
 $("placeOrder").addEventListener("click", async () => {
   const name = $("fName").value.trim() || "客人";
@@ -1279,7 +1307,7 @@ $("placeOrder").addEventListener("click", async () => {
   const orderNo = "ORD" + Date.now().toString().slice(-6);
   const order = { id: Date.now(), no: orderNo, name, phone, dept, by, date, time, people, note, room, items, total: totalPrice(), ts: Date.now() };
   const conflict = await checkRoomConflict(order.room, order.date, order.time);
-  if (conflict) { toast(conflict); return; }
+  if (conflict) { showConflict(conflict); return; }
   let cloudOk = false;
   try {
     await sbFetch("orders", {

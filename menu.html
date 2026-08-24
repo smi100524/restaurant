@@ -855,7 +855,7 @@ async function loadMenuImagesAsync() {
     imgRows.forEach(r => { imgMap[r.id] = r.img || ""; });
     MENU.forEach(d => { if (imgMap[d.id]) d.img = imgMap[d.id]; });
     renderMenu();
-    try { await idbSet("menu_full", MENU.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, desc: d.desc || "", emoji: d.emoji || "🍽️", tags: d.tags || [], img: d.img || "" }))); } catch (e) {}
+    try { await idbPut("menu_full", MENU.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, desc: d.desc || "", emoji: d.emoji || "🍽️", tags: d.tags || [], img: d.img || "" }))); } catch (e) {}
   } catch (e) {}
 }
 

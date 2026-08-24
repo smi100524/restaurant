@@ -676,10 +676,25 @@ async function mergedCats(dishes) {
   const dishCats = [...new Set(dishes.map(d => d.cat))];
   return [...new Set([...(Array.isArray(stored) ? stored : []), ...dishCats])];
 }
+let menuImagesLoaded = false;
+async function loadMenuImagesAdmin() {
+  if (menuImagesLoaded) return;
+  try {
+    const imgRows = await sbFetch("menu?select=id,img&order=id");
+    if (Array.isArray(imgRows) && imgRows.length) {
+      const imgMap = {};
+      imgRows.forEach(r => { imgMap[r.id] = r.img || ""; });
+      data.dishes.forEach(d => { if (imgMap[d.id]) d.img = imgMap[d.id]; });
+      renderAllAdmin();
+    }
+  } catch (e) {}
+  menuImagesLoaded = true;
+}
+
 async function loadData() {
   let ok = false;
   try {
-    const rows = await sbFetch("menu?select=*&order=id");
+    const rows = await sbFetch("menu?select=id,name,en,price,cat,emoji,tags,description&order=id");
     if (Array.isArray(rows)) {
       if (!rows.length) {
         const seed = DEFAULT_MENU.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji, tags: d.tags || [], img: d.img || "" }));
@@ -689,7 +704,7 @@ async function loadData() {
       data.dishes = rows.map(r => ({
         id: r.id, name: r.name, en: r.en || "", price: +r.price, cat: r.cat,
         desc: r.description || "", emoji: r.emoji || "🍽️",
-        tags: Array.isArray(r.tags) ? r.tags : [], img: r.img || ""
+        tags: Array.isArray(r.tags) ? r.tags : [], img: ""
       }));
       data.categories = await mergedCats(data.dishes);
       ok = true;
@@ -699,8 +714,10 @@ async function loadData() {
     data.dishes = DEFAULT_MENU.slice();
     data.categories = await mergedCats(data.dishes);
   }
+  loadMenuImagesAdmin();
 }
 async function saveData() {
+  if (!menuImagesLoaded) await loadMenuImagesAdmin();
   try {
     const rows = data.dishes.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji || "🍽️", tags: d.tags || [], img: d.img || "" }));
     await sbFetch("menu", {

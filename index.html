@@ -305,11 +305,11 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
   <div class="rooms-sub">Private Rooms</div>
   <div class="rooms-grid" id="roomsGrid">
     <figure class="room-card">
-      <div class="room-img"><img src="images/room-west.jpg" alt="西式包间"></div>
+      <div class="room-img"><img src="images/room-west.jpg?v=2" alt="西式包间"></div>
       <figcaption class="room-name">西式包间</figcaption>
     </figure>
     <figure class="room-card">
-      <div class="room-img"><img src="images/room-cn.jpg" alt="中式包间"></div>
+      <div class="room-img"><img src="images/room-cn.jpg?v=2" alt="中式包间"></div>
       <figcaption class="room-name">中式包间</figcaption>
     </figure>
   </div>
@@ -322,28 +322,28 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
   <div class="showcase-frame">
     <div class="showcase-roll"></div>
     <div class="dish-cards" id="dishCards">
-      <div class="dish-card"><img src="images/dish-1.jpg?v=3" alt="">
-        <div class="dish-name"><div class="cn">云雾清蒸鲈鱼</div><div class="en">Cloud-Steamed Sea Bass</div></div>
+      <div class="dish-card"><img src="images/dish-1.jpg?v=4" alt="">
+        <div class="dish-name"><div class="cn">白玉凉瓜炖鲜鲍汤</div><div class="en">White Jade Melon Stewed in Fresh Abalone Soup</div></div>
       </div>
-      <div class="dish-card"><img src="images/dish-2.jpg?v=3" alt="">
-        <div class="dish-name"><div class="cn">陈皮慢煨牛腩</div><div class="en">Tangerine-Simmered Beef Brisket</div></div>
+      <div class="dish-card"><img src="images/dish-2.jpg?v=4" alt="">
+        <div class="dish-name"><div class="cn">豪华刺身拼盘</div><div class="en">Deluxe Sashimi Platter</div></div>
       </div>
-      <div class="dish-card"><img src="images/dish-3.jpg?v=3" alt="">
-        <div class="dish-name"><div class="cn">金沙脆皮虾球</div><div class="en">Golden Sand Crispy Prawns</div></div>
+      <div class="dish-card"><img src="images/dish-3.jpg?v=4" alt="">
+        <div class="dish-name"><div class="cn">蒜蓉蒸小青龙</div><div class="en">Garlic Steamed Little Qinglong</div></div>
       </div>
-      <div class="dish-card"><img src="images/dish-4.jpg?v=3" alt="">
+      <div class="dish-card"><img src="images/dish-4.jpg?v=4" alt="">
+        <div class="dish-name"><div class="cn">松鼠桂鱼</div><div class="en">Squirrel Fish</div></div>
+      </div>
+      <div class="dish-card"><img src="images/dish-5.jpg?v=4" alt="">
+        <div class="dish-name"><div class="cn">鲜花椒啫牛肉粒</div><div class="en">Flower Pepper Teppan Beef Pellets</div></div>
+      </div>
+      <div class="dish-card"><img src="images/dish-6.jpg?v=4" alt="">
         <div class="dish-name"><div class="cn">荷塘翡翠时蔬</div><div class="en">Lotus Pond Jade Greens</div></div>
       </div>
-      <div class="dish-card"><img src="images/dish-5.jpg?v=3" alt="">
-        <div class="dish-name"><div class="cn">黑松露珍菌饭</div><div class="en">Black Truffle Wild Rice</div></div>
+      <div class="dish-card"><img src="images/dish-7.jpg?v=4" alt="">
+        <div class="dish-name"><div class="cn">黑松露牛肉粒炒饭</div><div class="en">Black truffle beef kernel fried rice</div></div>
       </div>
-      <div class="dish-card"><img src="images/dish-6.jpg?v=3" alt="">
-        <div class="dish-name"><div class="cn">蟹黄金汤豆腐</div><div class="en">Crab Roe Golden Tofu</div></div>
-      </div>
-      <div class="dish-card"><img src="images/dish-7.jpg?v=3" alt="">
-        <div class="dish-name"><div class="cn">蜜汁玫瑰叉烧</div><div class="en">Rose Honey Char Siu</div></div>
-      </div>
-      <div class="dish-card"><img src="images/dish-8.jpg?v=3" alt="">
+      <div class="dish-card"><img src="images/dish-8.jpg?v=4" alt="">
         <div class="dish-name"><div class="cn">桂香白玉糕</div><div class="en">Osmanthus White Jade Cake</div></div>
       </div>
     </div>
@@ -426,9 +426,42 @@ function toast(msg) {
 function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
+/* 首页内容本地缓存（断网也能显示最新内容） */
+function idbHomeOpen() {
+  return new Promise(function (resolve, reject) {
+    var req = indexedDB.open("swxc_home_db", 1);
+    req.onupgradeneeded = function () { req.result.createObjectStore("kv"); };
+    req.onsuccess = function () { resolve(req.result); };
+    req.onerror = function () { reject(req.error); };
+  });
+}
+function idbHomeGet(key) {
+  return new Promise(function (resolve, reject) {
+    idbHomeOpen().then(function (db) {
+      var r = db.transaction("kv", "readonly").objectStore("kv").get(key);
+      r.onsuccess = function () { resolve(r.result); };
+      r.onerror = function () { reject(r.error); };
+    }).catch(reject);
+  });
+}
+function idbHomeSet(key, val) {
+  return new Promise(function (resolve, reject) {
+    idbHomeOpen().then(function (db) {
+      var tx = db.transaction("kv", "readwrite");
+      tx.objectStore("kv").put(val, key);
+      tx.oncomplete = function () { resolve(); };
+      tx.onerror = function () { reject(tx.error); };
+    }).catch(reject);
+  });
+}
 async function loadHomeContent() {
   let rows = null;
   try { rows = await sbFetch("home_cards?select=*&order=sort"); } catch (e) { rows = null; }
+  if (Array.isArray(rows) && rows.length) {
+    try { await idbHomeSet("home_cards", rows); } catch (e) {}
+  } else {
+    try { const c = await idbHomeGet("home_cards"); if (Array.isArray(c) && c.length) rows = c; } catch (e) {}
+  }
   if (!Array.isArray(rows) || !rows.length) return;
   const rooms = rows.filter(r => r.type === "room");
   const dishes = rows.filter(r => r.type === "dish");

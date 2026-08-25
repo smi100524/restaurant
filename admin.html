@@ -768,14 +768,24 @@ function renderCatSelect() {
   $("eCat").innerHTML = opts;
   $("eCat").value = cur;
 }
+const CAT_ORDER = ["凉菜", "热菜", "汤羹", "汤", "主食", "饮品", "甜点", "粤菜"];
+function sortDishes(list) {
+  return list.slice().sort((a, b) => {
+    const ia = CAT_ORDER.indexOf(a.cat), ib = CAT_ORDER.indexOf(b.cat);
+    const oa = ia === -1 ? 99 : ia, ob = ib === -1 ? 99 : ib;
+    if (oa !== ob) return oa - ob;
+    return String(a.name).localeCompare(String(b.name), "zh-Hans-CN");
+  });
+}
+
 function renderTable() {
   const kw = $("searchDish").value.trim().toLowerCase();
   const fc = $("filterCat").value;
-  const list = data.dishes.filter(d => {
+  const list = sortDishes(data.dishes.filter(d => {
     const okC = !fc || d.cat === fc;
     const okK = !kw || (d.name + d.desc).toLowerCase().includes(kw);
     return okC && okK;
-  });
+  }));
   $("dishTable").innerHTML = list.map(d => {
     const hasImg = !!(d.img && d.img.trim());
     const tags = (d.tags || []).join("、") || "无标签";

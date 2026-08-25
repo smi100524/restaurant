@@ -887,6 +887,16 @@ async function loadMenuImagesAsync() {
   } catch (e) {}
 }
 
+const CAT_ORDER = ["凉菜", "热菜", "汤羹", "汤", "主食", "饮品", "甜点", "粤菜"];
+function sortDishes(list) {
+  return list.slice().sort((a, b) => {
+    const ia = CAT_ORDER.indexOf(a.cat), ib = CAT_ORDER.indexOf(b.cat);
+    const oa = ia === -1 ? 99 : ia, ob = ib === -1 ? 99 : ib;
+    if (oa !== ob) return oa - ob;
+    return String(a.name).localeCompare(String(b.name), "zh-Hans-CN");
+  });
+}
+
 async function loadData() {
   let ok = false;
   try {
@@ -922,6 +932,8 @@ async function loadData() {
   }
   // 清理购物车里已不存在的菜品
   Object.keys(state.cart).forEach(id => { if (!MENU.some(d => d.id === +id)) delete state.cart[id]; });
+  MENU = sortDishes(MENU);
+  CATS = ["全部", ...new Set(MENU.map(d => d.cat))];
   loadMenuImagesAsync();
 }/* ============ 邮件通知 ============ */
 let emailCfg = { serviceId: "service_oy16t9k", templateId: "template_woszpok", publicKey: "-3Zj_cN0d03-uZoMt", toEmail: "money477@qq.com" };

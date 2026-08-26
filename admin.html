@@ -1700,37 +1700,67 @@ function debounce(fn, ms) {
   };
 }
 const DISH_EN_DICT = {
-  "云雾清蒸鲈鱼": "Cloud-Steamed Sea Bass", "陈皮慢煨牛腩": "Tangerine-Simmered Beef Brisket",
-  "金沙脆皮虾球": "Golden Sand Crispy Prawns", "荷塘翡翠时蔬": "Lotus Pond Jade Greens",
-  "黑松露珍菌饭": "Black Truffle Wild Rice", "蟹黄金汤豆腐": "Crab Roe Golden Tofu",
-  "蜜汁玫瑰叉烧": "Rose Honey Char Siu", "桂香白玉糕": "Osmanthus White Jade Cake",
+  "客家酿苦瓜": "Stuffed Bitter Melon, Hakka Style", "紫苏贝贝南瓜焗排骨": "Baked Pork Ribs with Perilla and Baby Pumpkin",
+  "菠萝海鲜炒饭": "Pineapple Seafood Fried Rice", "蒜蓉小青龙": "Garlic Steamed Lobster", "蒜蓉蒸小青龙": "Garlic Steamed Lobster",
+  "白玉凉瓜炖鲜鲍汤": "Jade White Melon Soup with Fresh Abalone", "上汤豆苗": "Pea Shoots in Superior Broth",
+  "桂香白玉糕": "Osmanthus White Jade Cake", "山药烧羊肚菌": "Braised Chinese Yam with Morel Mushrooms",
+  "清蒸多宝鱼": "Steamed Turbot", "五指毛桃焗果园鸡": "Roast Chicken with Wuzhimaotao Root",
+  "五指毛桃大骨汤": "Wuzhimaotao Pork Bone Soup", "卤水拼盘": "Assorted Marinated Platter",
+  "芝士焗小青龙": "Cheese-Baked Lobster", "鸡枞菌扒菜胆": "Braised Baby Bok Choy with Termitomyces Mushrooms",
+  "蜜汁叉烧": "Honey-Glazed BBQ Pork", "可口可乐": "Coca-Cola", "椰汁": "Coconut Milk", "矿泉水": "Mineral Water",
+  "鱼香茄子煲": "Yu Xiang Eggplant in Clay Pot", "小炒黄牛肉": "Stir-Fried Beef with Chili", "金牌烧鹅": "Golden Roast Goose",
+  "山胡椒毛肚": "Tripe with Mountain Pepper", "盐焗花螺": "Salt-Baked Sea Snails", "红油肚丝": "Shredded Tripe in Chili Oil",
+  "鹿茸菇鲍鱼焖鸡": "Braised Chicken with Abalone and Deer Antler Mushrooms",
+  "杏鲍菇炒牛肉粒": "Stir-Fried Beef Cubes with King Oyster Mushrooms", "霸王别姬": "Braised Turtle and Chicken",
+  "手抓羊排": "Roasted Lamb Chops", "干锅鱿鱼": "Dry Pot Squid", "干锅黄骨鱼": "Dry Pot Yellow Catfish",
+  "豪华刺身拼盘": "Deluxe Sashimi Platter", "松鼠桂鱼": "Sweet & Sour Mandarin Fish",
+  "凉拌牛展": "Chilled Sliced Beef Shank", "黑松露牛肉粒炒饭": "Black Truffle Beef Fried Rice",
+  "蒜蓉粉丝基围虾": "Garlic Vermicelli Prawns", "砂锅客家酿豆腐": "Hakka Stuffed Tofu in Clay Pot",
+  "虫草花肉汁鲜鲍汤": "Cordyceps Flower Soup with Abalone and Pork Broth", "豉油焗九节虾": "Soy-Braised Prawns",
+  "琉璃脆皮乳鸽": "Glazed Crispy Roast Pigeon", "口水鸡": "Mouth-Watering Chicken",
+  "莲子百合排骨汤": "Lotus Seed and Lily Pork Rib Soup", "花旗参鸽子汤": "American Ginseng Pigeon Soup",
+  "虫草花老鸡汤": "Cordyceps Flower Old Chicken Soup", "茶树菇龙骨汤": "Tea Tree Mushroom Pork Rib Soup",
+  "银耳莲子汤": "Silver Fungus and Lotus Seed Soup", "花旗参老鸡汤": "American Ginseng Chicken Soup",
+  "芙蓉蒸东星斑": "Steamed Coral Grouper with Egg White", "黑钻百合炒螺片": "Stir-Fried Conch Slices with Black Garlic and Lily",
+  "薄荷炒明虾": "Stir-Fried Prawns with Mint", "金蒜雪花牛肉粒": "Garlic Marbled Beef Cubes",
+  "薄荷炒罗氏虾": "Stir-Fried Giant River Prawns with Mint", "姜麻蒸老虎斑": "Steamed Tiger Grouper with Ginger",
+  "酱啫安格斯牛仔骨": "Angus Beef Short Ribs in Clay Pot", "鲍汁红腰豆扣鲍鱼": "Braised Abalone with Red Kidney Beans in Abalone Sauce",
+  "鲜花椒啫牛肉粒": "Beef Cubes with Green Sichuan Pepper in Clay Pot", "大闸蟹": "Hairy Crab",
+  "红糖糍粑": "Brown Sugar Glutinous Rice Cake", "西芹百合炒腰果": "Stir-Fried Celery, Lily Bulb and Cashews",
+  "椒盐皮皮虾": "Salt and Pepper Mantis Shrimp", "霸王花龙骨汤": "Pitaya Flower Pork Rib Soup",
+  "滋补乌鸡汤": "Nourishing Black Chicken Soup", "荷叶红枣蒸鸡": "Steamed Chicken with Lotus Leaf and Red Dates",
+  "香茅焗焦香乳鸽": "Lemongrass Roasted Pigeon", "乳山生蚝": "Rushan Oysters", "凉拌莴笋丝": "Chilled Shredded Celtuce",
+  "干锅辣椒炒肉": "Dry Pot Chili Pork", "湿炒牛河": "Wok-Fried Beef Flat Rice Noodles",
+  "歌乐山辣子鸡": "Geleshan Chili Chicken", "蜂蜜芥末虾球": "Honey Mustard Prawn Balls",
+  "腊味煲仔饭": "Clay Pot Rice with Cured Meats", "避风塘对虾": "Typhoon Shelter Prawns",
+  "豆豉鲮鱼油麦菜": "Stir-Fried Lettuce with Dace in Black Bean Sauce", "白灼基围虾": "Poached Prawns",
+  "葱烧山药": "Braised Chinese Yam with Scallions",
   "宫保鸡丁": "Kung Pao Chicken", "麻婆豆腐": "Mapo Tofu", "鱼香肉丝": "Yu-Shiang Shredded Pork",
   "清蒸鲈鱼": "Steamed Sea Bass", "红烧肉": "Braised Pork Belly", "糖醋里脊": "Sweet and Sour Pork",
   "北京烤鸭": "Peking Duck", "春卷": "Spring Rolls", "扬州炒饭": "Yangzhou Fried Rice",
-  "蛋炒饭": "Egg Fried Rice", "炒饭": "Fried Rice", "炒面": "Fried Noodles",
-  "饺子": "Dumplings", "小笼包": "Soup Dumplings", "酸菜鱼": "Fish in Pickled Cabbage",
-  "水煮鱼": "Sichuan Boiled Fish", "回锅肉": "Twice-Cooked Pork", "口水鸡": "Saliva Chicken",
-  "夫妻肺片": "Fuqi Feipian", "东坡肉": "Dongpo Pork", "干煸四季豆": "Dry-Fried Green Beans",
-  "蒜蓉粉丝蒸扇贝": "Garlic Vermicelli Scallops", "清蒸大闸蟹": "Steamed Hairy Crab",
-  "白灼虾": "Poached Shrimp", "番茄炒蛋": "Scrambled Eggs with Tomato",
-  "上汤娃娃菜": "Baby Cabbage in Soup", "香菇青菜": "Mushroom Greens",
-  "蒜蓉西兰花": "Garlic Broccoli", "紫菜蛋花汤": "Seaweed Egg Drop Soup",
-  "酸辣汤": "Hot and Sour Soup", "葱油饼": "Scallion Pancake", "汤圆": "Tangyuan (Glutinous Rice Balls)"
+  "蛋炒饭": "Egg Fried Rice", "炒饭": "Fried Rice", "炒面": "Fried Noodles", "饺子": "Dumplings",
+  "小笼包": "Soup Dumplings", "酸菜鱼": "Fish in Pickled Cabbage", "水煮鱼": "Sichuan Boiled Fish",
+  "回锅肉": "Twice-Cooked Pork", "夫妻肺片": "Fuqi Feipian", "东坡肉": "Dongpo Pork",
+  "干煸四季豆": "Dry-Fried Green Beans", "蒜蓉粉丝蒸扇贝": "Garlic Vermicelli Scallops",
+  "清蒸大闸蟹": "Steamed Hairy Crab", "白灼虾": "Poached Shrimp", "番茄炒蛋": "Scrambled Eggs with Tomato",
+  "上汤娃娃菜": "Baby Cabbage in Soup", "香菇青菜": "Mushroom Greens", "蒜蓉西兰花": "Garlic Broccoli",
+  "紫菜蛋花汤": "Seaweed Egg Drop Soup", "酸辣汤": "Hot and Sour Soup", "葱油饼": "Scallion Pancake",
+  "汤圆": "Tangyuan (Glutinous Rice Balls)"
 };
 function translateDishName(zh) {
   const key = String(zh || "").trim();
   if (!key) return Promise.resolve("");
   if (DISH_EN_DICT[key]) return Promise.resolve(DISH_EN_DICT[key]);
   const to = s => String(s || "").trim().replace(/\s+/g, " ");
-  const t1 = fetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(key) + "&langpair=zh|en", { signal: AbortSignal.timeout(6000) })
+  const g = fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q=" + encodeURIComponent(key), { signal: AbortSignal.timeout(6000) })
     .then(r => r.json())
-    .then(j => to(j && j.responseData && j.responseData.translatedText))
+    .then(j => to(j && j[0] && j[0][0] && j[0][0][0]))
     .catch(() => "");
-  return t1.then(t => {
+  return g.then(t => {
     if (t) return t;
-    return fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=en&dt=t&q=" + encodeURIComponent(key), { signal: AbortSignal.timeout(6000) })
+    return fetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(key) + "&langpair=zh|en", { signal: AbortSignal.timeout(6000) })
       .then(r => r.json())
-      .then(j => to(j && j[0] && j[0][0] && j[0][0][0]))
+      .then(j => to(j && j.responseData && j.responseData.translatedText))
       .catch(() => "");
   });
 }

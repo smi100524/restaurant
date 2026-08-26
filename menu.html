@@ -743,6 +743,7 @@ const DEFAULT_MENU = [
 let MENU = DEFAULT_MENU;
 let CATS = ["全部"];
 const state = { cart: {}, cat: "全部", keyword: "" };
+var __loadStart = Date.now();
 const $ = id => document.getElementById(id);
 const fmt = n => "¥" + n;
 async function buildBaojianXlsx(o) {
@@ -1711,9 +1712,9 @@ async function handleExportLink() {
   loadEmailCfg();
   renderCats();
   renderAll();
+  var __el = Date.now() - __loadStart;
+  setTimeout(function () { var pl = document.getElementById("pageLoader"); if (pl) pl.classList.add("done"); }, Math.max(0, 1000 - __el));
   setTimeout(function () { var pl2 = document.getElementById("pageLoader"); if (pl2) pl2.classList.add("done"); }, 8000);
-  const pl = document.getElementById("pageLoader");
-  if (pl) pl.classList.add("done");
   handleExportLink();
 })();
 </script>

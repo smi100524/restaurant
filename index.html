@@ -286,6 +286,7 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
 .pl-dots span:nth-child(3){animation-delay:.3s}
 @keyframes plb{0%,80%,100%{transform:scale(.6);opacity:.35}40%{transform:scale(1);opacity:1}}
 .pl-text{font-size:12px;color:var(--sub);letter-spacing:3px;margin-top:12px}
+.page-loader .mount{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;pointer-events:none;opacity:.8}
 </style>
 </head><body>
 <div class="page-loader" id="pageLoader">
@@ -297,6 +298,11 @@ footer .en{color:var(--celadon);letter-spacing:2px;margin-bottom:8px}
     <div class="pl-dots"><span></span><span></span><span></span></div>
     <div class="pl-text">正在为您准备…</div>
   </div>
+  <svg class="mount" viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <path fill="#5f7f79" opacity=".09" d="M0,180 C180,120 260,220 430,155 C600,95 760,200 940,140 C1100,90 1260,175 1440,120 L1440,320 L0,320 Z"/>
+    <path fill="#5f7f79" opacity=".06" d="M0,240 C160,195 320,260 520,205 C720,150 900,250 1120,200 C1280,155 1380,220 1440,190 L1440,320 L0,320 Z"/>
+    <path fill="#b09a68" opacity=".06" d="M0,275 C300,225 520,290 760,245 C980,210 1220,280 1440,235 L1440,320 L0,320 Z"/>
+  </svg>
 </div>
 
 

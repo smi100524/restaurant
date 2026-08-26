@@ -276,8 +276,29 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   .tools input{width:100%}
   .panel-body{padding:14px}
 }
+.page-loader{position:fixed;inset:0;z-index:999;background:var(--paper);display:flex;align-items:center;justify-content:center;transition:opacity .45s ease,visibility .45s ease}
+.page-loader.done{opacity:0;visibility:hidden;pointer-events:none}
+.pl-inner{text-align:center;padding:0 20px}
+.pl-logo{height:42px;width:auto;margin:0 auto 14px;display:block;filter:drop-shadow(0 2px 6px rgba(47,58,52,.18))}
+.pl-name{font-size:22px;letter-spacing:9px;font-weight:700;color:var(--ink)}
+.pl-sub{font-size:11px;letter-spacing:4px;color:var(--gold);margin-top:6px}
+.pl-dots{display:flex;justify-content:center;gap:9px;margin-top:22px}
+.pl-dots span{width:9px;height:9px;border-radius:50%;background:var(--celadon);animation:plb 1s infinite ease-in-out}
+.pl-dots span:nth-child(2){animation-delay:.15s}
+.pl-dots span:nth-child(3){animation-delay:.3s}
+@keyframes plb{0%,80%,100%{transform:scale(.6);opacity:.35}40%{transform:scale(1);opacity:1}}
+.pl-text{font-size:12px;color:var(--sub);letter-spacing:3px;margin-top:12px}
 </style>
 </head><body>
+<div class="page-loader" id="pageLoader">
+  <div class="pl-inner">
+    <img class="pl-logo" src="images/logo.png" alt="赛尔美餐厅">
+    <div class="pl-name">赛尔美餐厅</div>
+    <div class="pl-sub">SMISS Restaurant</div>
+    <div class="pl-dots"><span></span><span></span><span></span></div>
+    <div class="pl-text">正在加载…</div>
+  </div>
+</div>
 
 <!-- 管理端登录 -->
 <div class="login-view" id="loginView">
@@ -1735,6 +1756,8 @@ function bindDishEditorTranslate() {
   loadHomeEditor();
   bindDishEditorTranslate();
   refreshLoginState();
+  var pl = document.getElementById("pageLoader"); if (pl) pl.classList.add("done");
+  setTimeout(function () { var pl2 = document.getElementById("pageLoader"); if (pl2) pl2.classList.add("done"); }, 10000);
 })();
 </script>
 </body>

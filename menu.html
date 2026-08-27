@@ -777,7 +777,7 @@ function hideLoader() {
   var w = Math.max(0, 1000 - (Date.now() - __loadStart));
   setTimeout(function () { pl.classList.add("done"); }, w);
 }
-/* 仅等待首屏菜品图片（前 8 张），其余图片懒加载，加载页更早消失 */
+/* 加载页只等前 10 张首屏图，其余图片后台继续加载，页面尽快可用 */
 function allDishImagesLoaded() {
   var imgs = document.querySelectorAll('.dish-img.show[data-urgent="1"]');
   if (!imgs.length) return true;
@@ -1109,11 +1109,10 @@ function renderMenu() {
     ).join("");
     const hot = (d.tags || []).includes("招牌");
     const hasImg = !!(d.img && d.img.trim());
-    const urgent = idx < 8 ? ' data-urgent="1"' : "";
-    const lazyAttr = idx >= 8 ? ' loading="lazy"' : "";
+    const urgent = idx < 10 ? ' data-urgent="1"' : "";
     const imgTag = hasImg
-      ? `<img class="dish-img show" src="${d.img}" alt="${d.name}"${lazyAttr}${urgent}>`
-      : `<img class="dish-img" alt="${d.name}" data-dishid="${d.id}"${lazyAttr}${urgent}>`;
+      ? `<img class="dish-img show" src="${d.img}" alt="${d.name}"${urgent}>`
+      : `<img class="dish-img" alt="${d.name}" data-dishid="${d.id}"${urgent}>`;
     const hasOpts = !!(d.options && d.options.length);
     const stepper = (qty > 0 && !hasOpts) ? `
       <div class="stepper">
@@ -1166,25 +1165,11 @@ function setProbe(id, ext) {
   c[id] = ext || "";
   try { localStorage.setItem(PROBE_KEY, JSON.stringify(c)); } catch (e) {}
 }
-let _dishIO = null;
-function ensureDishObserver() {
-  if (_dishIO) return;
-  try {
-    if (typeof IntersectionObserver === "undefined") return;
-    _dishIO = new IntersectionObserver(entries => {
-      entries.forEach(en => {
-        const img = en.target;
-        if (_dishIO) _dishIO.unobserve(img);
-        if (!img.classList.contains("show")) tryLoadDishImage(img);
-      });
-    }, { rootMargin: "300px" });
-  } catch (e) { _dishIO = null; }
-}
+/* 全部图片立即加载：前 10 张优先，其余浏览器自动排队后台加载 */
 function loadDishImages() {
-  ensureDishObserver();
-  document.querySelectorAll(".dish-img:not(.show)").forEach(img => {
-    if (img.dataset.urgent === "1" || !_dishIO) tryLoadDishImage(img);
-    else _dishIO.observe(img);
+  document.querySelectorAll(".dish-img:not(.show)").forEach((img, i) => {
+    if (img.dataset.urgent === "1") tryLoadDishImage(img);
+    else setTimeout(() => { if (!img.classList.contains("show")) tryLoadDishImage(img); }, i * 12);
   });
 }
 function tryLoadDishImage(imgEl) {

@@ -113,6 +113,8 @@ input,textarea,select{font-family:inherit}
 .panel-head h2{font-size:17px;font-weight:700;letter-spacing:3px;display:flex;align-items:center;gap:8px}
 .panel-head h2::before{content:"◆";font-size:10px;color:var(--gold)}
 .panel-head .hint{font-size:12px;color:var(--sub)}
+.ph-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dish-count{font-size:12px;color:var(--green);letter-spacing:1px;background:#eef3ec;border:1px solid var(--line);border-radius:20px;padding:3px 12px;white-space:nowrap}
 .panel-body{padding:18px 20px}
 /* ===== 按钮 / 输入 ===== */
 button.primary{
@@ -349,7 +351,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   <!-- 菜品管理 -->
   <section class="panel">
     <div class="panel-head">
+      <div class="ph-left">
       <h2>菜品管理</h2>
+        <span class="dish-count" id="dishCount"></span>
+      </div>
       <div class="tools">
         <input id="searchDish" type="text" placeholder="搜索菜名…">
         <select id="filterCat"></select>
@@ -828,6 +833,8 @@ function sortDishes(list) {
 }
 
 function renderTable() {
+  var dc = document.getElementById("dishCount");
+  if (dc) dc.textContent = "共 " + data.dishes.length + " 道";
   const kw = $("searchDish").value.trim().toLowerCase();
   const fc = $("filterCat").value;
   const list = sortDishes(data.dishes.filter(d => {

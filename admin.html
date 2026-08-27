@@ -110,6 +110,9 @@ input,textarea,select{font-family:inherit}
   border-bottom:1px solid var(--line);
   background:#f8f2e3;
 }
+.panel-sticky{overflow:visible}
+.panel-sticky .panel-head{border-radius:8px 8px 0 0}
+.ph-sticky{position:sticky;top:0;z-index:25;box-shadow:0 3px 10px rgba(47,58,52,.08)}
 .panel-head h2{font-size:17px;font-weight:700;letter-spacing:3px;display:flex;align-items:center;gap:8px}
 .panel-head h2::before{content:"◆";font-size:10px;color:var(--gold)}
 .panel-head .hint{font-size:12px;color:var(--sub)}
@@ -334,8 +337,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   <div class="notice">菜单、预订、订单已接入<b>Supabase 云端数据库</b>：管理端修改后全站实时同步，顾客订单实时汇总到「数据管理」。</div>
 
   <!-- 品类管理 -->
-  <section class="panel">
-    <div class="panel-head">
+  <section class="panel panel-sticky">
+      <div class="panel-head ph-sticky">
       <h2>品类管理</h2>
       <span class="hint">新增 / 改名 / 删除分类，点菜页顶部会同步显示</span>
     </div>
@@ -349,8 +352,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </section>
 
   <!-- 菜品管理 -->
-  <section class="panel">
-    <div class="panel-head">
+  <section class="panel panel-sticky">
+    <div class="panel-head ph-sticky">
       <div class="ph-left">
       <h2>菜品管理</h2>
         <span class="dish-count" id="dishCount"></span>

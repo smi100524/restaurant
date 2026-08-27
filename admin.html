@@ -285,6 +285,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   .dish-row{gap:10px}
   .tools input{width:100%}
   .panel-body{padding:14px}
+  .field-row{flex-direction:column;gap:0}
+  .opt-row{flex-wrap:wrap}
+  .img-box{flex-direction:column;align-items:stretch}
+  .img-actions{min-width:0}
 }
 .page-loader{position:fixed;inset:0;z-index:999;background:var(--paper);display:flex;align-items:center;justify-content:center;transition:opacity .45s ease,visibility .45s ease}
 .page-loader.done{opacity:0;visibility:hidden;pointer-events:none}
@@ -571,7 +575,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
         <div class="opt-list" id="eOptList"></div>
         <button class="ghost" id="addOpt" type="button" style="margin-top:6px">＋ 添加规格</button>
         <div class="hint">如：6人份 168、8人份 198、10人份 228；不填则按上方价格</div>
-      </div>
       </div>
       <div class="field">
         <label>展示图片</label>

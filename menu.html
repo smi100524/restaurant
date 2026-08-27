@@ -340,6 +340,9 @@ input,textarea,select{font-family:inherit}
 .summary .row b{color:var(--ink)}
 .summary .grand{font-size:15px;color:var(--ink);font-weight:700;border-top:1px dashed var(--line);margin-top:4px;padding-top:6px}
 .summary .grand b{color:var(--cinnabar);font-size:19px}
+.opt-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:13px 16px;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;background:#fffdf6;font-size:15px;cursor:pointer;transition:all .15s}
+.opt-btn:hover{border-color:var(--celadon);background:#eef3ef}
+.opt-btn .ob-p{color:var(--cinnabar);font-weight:700;font-size:16px}
 .modal-foot{padding:14px 22px 20px}
 .modal-foot.foot-split{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .modal-foot.foot-split .step-hint{font-size:13px;color:var(--sub);letter-spacing:1px;white-space:nowrap}
@@ -528,6 +531,14 @@ input,textarea,select{font-family:inherit}
     <button class="submit-btn" id="goCheckout" type="button">提交预订菜单</button>
   </div>
 </aside>
+
+<!-- 规格选择弹窗 -->
+<div class="modal" id="optModal" style="z-index:145">
+  <div class="modal-card" style="max-width:320px">
+    <div class="modal-head"><h3 id="optTitle">选择规格</h3><button class="close-btn" id="optClose" type="button" aria-label="关闭">✕</button></div>
+    <div class="modal-body" id="optList"></div>
+  </div>
+</div>
 
 <!-- 预订冲突弹窗 -->
 <div class="modal" id="conflictModal" style="z-index:140">
@@ -959,7 +970,7 @@ function sortDishes(list) {
 async function loadData() {
   let ok = false;
   try {
-    const rows = await sbFetch("menu?select=id,name,en,price,cat,emoji,tags,description&order=id");
+    const rows = await sbFetch("menu?select=id,name,en,price,cat,emoji,tags,description,options&order=id");
     if (Array.isArray(rows)) {
       if (!rows.length) {
         const seed = DEFAULT_MENU.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji, tags: d.tags || [], img: d.img || "" }));
@@ -969,7 +980,7 @@ async function loadData() {
       MENU = rows.map(r => ({
         id: r.id, name: r.name, en: r.en || "", price: +r.price, cat: r.cat,
         desc: r.description || "", emoji: r.emoji || "🍽️",
-        tags: Array.isArray(r.tags) ? r.tags : [], img: ""
+        tags: Array.isArray(r.tags) ? r.tags : [], img: "", options: Array.isArray(r.options) ? r.options : []
       }));
       CATS = ["全部", ...new Set(MENU.map(d => d.cat))];
       ok = true;
@@ -1066,7 +1077,7 @@ function renderMenu() {
     return;
   }
   $("menu").innerHTML = list.map(d => {
-    const qty = state.cart[d.id] || 0;
+    const qty = dishQty(d.id);
     const tagHtml = (d.tags || []).map(t =>
       t === "素" ? `<span class="tag veg">素</span>` :
       t === "辣" ? `<span class="tag hot">辣</span>` : `<span class="tag">${t}</span>`
@@ -1076,13 +1087,14 @@ function renderMenu() {
     const imgTag = hasImg
       ? `<img class="dish-img show" src="${d.img}" alt="${d.name}">`
       : `<img class="dish-img" alt="${d.name}" data-dishid="${d.id}">`;
-    const stepper = qty > 0 ? `
+    const hasOpts = !!(d.options && d.options.length);
+    const stepper = (qty > 0 && !hasOpts) ? `
       <div class="stepper">
         <button class="step-btn minus" data-id="${d.id}" type="button">−</button>
         <span class="step-num">${qty}</span>
         <button class="step-btn plus" data-id="${d.id}" type="button">+</button>
       </div>` : `
-      <button class="add-btn" data-id="${d.id}" type="button">+</button>`;
+      <button class="add-btn" data-id="${d.id}" type="button">+${qty > 0 ? " (" + qty + ")" : ""}</button>`;
     return `
     <div class="dish" data-id="${d.id}">
       <div class="dish-photo" style="background:${photoGradient(d.cat)}">
@@ -1137,62 +1149,99 @@ function tryLoadDishImage(imgEl) {
 }
 
 /* ============ 购物车 ============ */
+function dishOptions(d) {
+  return (d && d.options && d.options.length) ? d.options : [{ label: "", price: d.price }];
+}
+function cartItems() {
+  const items = [];
+  Object.keys(state.cart).forEach(idStr => {
+    const id = +idStr;
+    const d = MENU.find(x => x.id === id);
+    if (!d) return;
+    const opts = dishOptions(d);
+    const sel = state.cart[idStr] || {};
+    Object.keys(sel).forEach(opt => {
+      const qty = sel[opt];
+      if (!qty) return;
+      const o = opts.find(x => x.label === opt) || { label: opt, price: d.price };
+      items.push({ id, name: d.name, option: opt, price: o.price, qty });
+    });
+  });
+  return items;
+}
 function countItems() {
-  return Object.values(state.cart).reduce((a, b) => a + b, 0);
+  return cartItems().reduce((s, it) => s + it.qty, 0);
 }
 function totalPrice() {
-  return MENU.reduce((s, d) => s + (state.cart[d.id] || 0) * d.price, 0);
+  return cartItems().reduce((s, it) => s + it.qty * it.price, 0);
 }
-function addToCart(id, delta) {
-  const cur = state.cart[id] || 0;
+function dishQty(id) {
+  const sel = state.cart[id] || {};
+  return Object.keys(sel).reduce((s, k) => s + sel[k], 0);
+}
+function addToCart(id, delta, option) {
+  const d = MENU.find(x => x.id === id);
+  if (!d) return;
+  const opts = dishOptions(d);
+  const optKey = option == null ? opts[0].label : option;
+  const sel = state.cart[id] || {};
+  const cur = sel[optKey] || 0;
   const next = cur + delta;
-  if (next <= 0) delete state.cart[id];
-  else state.cart[id] = next;
+  if (next <= 0) {
+    delete sel[optKey];
+    if (!Object.keys(sel).length) delete state.cart[id];
+  } else {
+    sel[optKey] = next;
+    state.cart[id] = sel;
+  }
   saveCart();
   renderAll();
-    if (modal.classList.contains("show")) { renderConfirmItems(); buildSummary(); }
+  if (modal.classList.contains("show")) { renderConfirmItems(); buildSummary(); }
 }
 function renderConfirmItems() {
-  const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
+  const items = cartItems();
   const el = $("confirmItems");
-  if (!ids.length) {
+  if (!items.length) {
     el.innerHTML = `<div class="cart-empty" style="padding:18px 0"><span class="e">🛒</span>预订菜单还是空的<br>去挑几道好吃的吧～</div>`;
     return;
   }
-  el.innerHTML = ids.map(id => {
-    const d = MENU.find(x => x.id === id);
-    return `<div class="oi static">${dishIconHtml(d, "oe")}<span class="on">${esc(d.name)}</span><span class="op">× ${state.cart[id]}</span><span class="op">¥${d.price * state.cart[id]}</span></div>`;
+  el.innerHTML = items.map(it => {
+    const d = MENU.find(x => x.id === it.id);
+    if (!d) return "";
+    const opt = it.option ? '<span class="ob">（' + esc(it.option) + '）</span>' : "";
+    return `<div class="oi static">${dishIconHtml(d, "oe")}<span class="on">${esc(d.name)}${opt}</span><span class="op">× ${it.qty}</span><span class="op">¥${it.price * it.qty}</span></div>`;
   }).join("");
 }
 function renderCart() {
-  const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
-  const n = ids.reduce((a, id) => a + state.cart[id], 0);
+  const items = cartItems();
+  const n = items.reduce((a, it) => a + it.qty, 0);
   $("floatCart").classList.toggle("show", n > 0);
   $("fcCount").textContent = n;
   $("fcTotal").textContent = fmt(totalPrice());
   $("drawerTotal").textContent = fmt(totalPrice());
   const listEl = $("cartList");
-  if (!ids.length) {
+  if (!items.length) {
     listEl.innerHTML = `<div class="cart-empty"><span class="e">🛒</span>预订菜单还是空的<br>去挑几道好吃的吧～</div>`;
     return;
   }
-  listEl.innerHTML = ids.map(id => {
-    const d = MENU.find(x => x.id === id);
+  listEl.innerHTML = items.map(it => {
+    const d = MENU.find(x => x.id === it.id);
     if (!d) return "";
+    const optHtml = it.option ? `<div class="cp">${esc(it.option)} · ¥${it.price} / 份</div>` : `<div class="cp">¥${it.price} / 份</div>`;
     return `
     <div class="cart-item">
       ${dishIconHtml(d)}
       <div class="ci">
         <div class="cn">${esc(d.name)}</div>
-        <div class="cp">¥${d.price} / 份</div>
-        <div class="rm">小计 ¥${d.price * state.cart[id]}</div>
+        ${optHtml}
+        <div class="rm">小计 ¥${it.price * it.qty}</div>
       </div>
       <div class="stepper">
-        <button class="step-btn minus" data-id="${id}" type="button">−</button>
-        <span class="step-num">${state.cart[id]}</span>
-        <button class="step-btn plus" data-id="${id}" type="button">+</button>
+        <button class="step-btn minus" data-id="${it.id}" data-opt="${esc(it.option)}" type="button">−</button>
+        <span class="step-num">${it.qty}</span>
+        <button class="step-btn plus" data-id="${it.id}" data-opt="${esc(it.option)}" type="button">+</button>
       </div>
-      <button class="del-btn" data-id="${id}" type="button" title="删除">🗑️</button>
+      <button class="del-btn" data-id="${it.id}" data-opt="${esc(it.option)}" type="button" title="删除">🗑️</button>
     </div>`;
   }).join("");
 }
@@ -1207,6 +1256,27 @@ document.querySelectorAll(".hero-logo, .hero-line").forEach(function (el) {
   el.addEventListener("click", function () { window.location.href = "index.html?v=20260822"; });
 });
 
+let optPendingId = null;
+function openOptPicker(id) {
+  const d = MENU.find(x => x.id === id);
+  if (!d) return;
+  optPendingId = id;
+  $("optTitle").textContent = d.name + " · 选择规格";
+  $("optList").innerHTML = d.options.map((o, i) => `<button class="opt-btn" data-i="${i}" type="button"><span>${esc(o.label)}</span><span class="ob-p">¥${o.price}</span></button>`).join("");
+  $("optModal").classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+function closeOptPicker() { $("optModal").classList.remove("show"); document.body.style.overflow = ""; optPendingId = null; }
+$("optClose").addEventListener("click", closeOptPicker);
+$("optModal").addEventListener("click", e => {
+  if (e.target === $("optModal")) { closeOptPicker(); return; }
+  const btn = e.target.closest(".opt-btn");
+  if (!btn) return;
+  const d = MENU.find(x => x.id === optPendingId);
+  if (d) { const o = d.options[+btn.dataset.i]; soupHint(d.id); addToCart(d.id, 1, o.label); }
+  closeOptPicker();
+});
+
 /* ============ 事件：加菜 / 减菜 / 删除 ============ */
 document.addEventListener("click", e => {
   const add = e.target.closest(".add-btn");
@@ -1214,10 +1284,14 @@ document.addEventListener("click", e => {
   const minus = e.target.closest(".minus");
   const del = e.target.closest(".del-btn");
   const del2 = e.target.closest(".del");
-  if (add) { soupHint(+add.dataset.id); addToCart(+add.dataset.id, 1); }
-  else if (plus) { soupHint(+plus.dataset.id); addToCart(+plus.dataset.id, 1); }
-  else if (minus) addToCart(+minus.dataset.id, -1);
-  else if (del || del2) { addToCart(+(del || del2).dataset.id, -999); toast("已移除"); }
+  if (add) {
+    const ad = MENU.find(x => x.id === +add.dataset.id);
+    if (ad && ad.options && ad.options.length) openOptPicker(+add.dataset.id);
+    else { soupHint(+add.dataset.id); addToCart(+add.dataset.id, 1); }
+  }
+  else if (plus) { soupHint(+plus.dataset.id); addToCart(+plus.dataset.id, 1, plus.dataset.opt || null); }
+  else if (minus) addToCart(+minus.dataset.id, -1, minus.dataset.opt || null);
+  else if (del || del2) { addToCart(+(del || del2).dataset.id, -999, (del || del2).dataset.opt || null); toast("已移除"); }
 });
 
 /* ============ 事件：分类 / 搜索 ============ */
@@ -1281,10 +1355,10 @@ async function openCheckout() {
   document.body.style.overflow = "hidden";
 }
 function buildSummary() {
-  const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
-  const rows = ids.map(id => {
-    const d = MENU.find(x => x.id === id);
-    return `<div class="row"><span>${esc(d.name)} × ${state.cart[id]}</span><b>¥${d.price * state.cart[id]}</b></div>`;
+  const items = cartItems();
+  const rows = items.map(it => {
+    const opt = it.option ? "（" + it.option + "）" : "";
+    return `<div class="row"><span>${esc(it.name)}${opt} × ${it.qty}</span><b>¥${it.price * it.qty}</b></div>`;
   }).join("");
   $("orderSummary").innerHTML = rows + `<div class="row grand"><span>合计</span><b>${fmt(totalPrice())}</b></div>`;
 }
@@ -1313,7 +1387,7 @@ function getOrderHints() {
   if (!cats.has("饮品")) missing.push("饮品");
   if (missing.length) {
     hints.push("您还没有点：" + missing.join("、") + "，建议补充。");
-  const soupQty = MENU.filter(d => ["汤羹", "汤"].includes(d.cat) && state.cart[d.id]).reduce((s, d) => s + state.cart[d.id], 0);
+  const soupQty = MENU.filter(d => ["汤羹", "汤"].includes(d.cat) && dishQty(d.id)).reduce((s, d) => s + dishQty(d.id), 0);
   if (soupQty > 0 && soupQty < people) {
     hints.push("汤盅按用餐人数点，您 " + people + " 人用餐，建议点 " + people + " 盅（当前已点 " + soupQty + " 盅）。");
   }
@@ -1382,7 +1456,7 @@ let lastOrder = null;
 let pendingPlace = false;
 $("placeOrder").addEventListener("click", async () => {
   const people = parseInt($("fPeople").value, 10) || 1;
-  const soupQty = MENU.filter(d => ["汤羹", "汤"].includes(d.cat) && state.cart[d.id]).reduce((s, d) => s + state.cart[d.id], 0);
+  const soupQty = MENU.filter(d => ["汤羹", "汤"].includes(d.cat) && dishQty(d.id)).reduce((s, d) => s + dishQty(d.id), 0);
   let suppressed = false;
   try { suppressed = sessionStorage.getItem("swxc_no_hints") === "1"; } catch (e) {}
   if (soupQty > 0 && soupQty < people && !suppressed) {
@@ -1405,7 +1479,7 @@ async function doPlaceOrder() {
   const note = $("fNote").value.trim();
   const room = (document.querySelector('input[name="fRoom"]:checked') || {}).value || "西式包间";
   const ids = Object.keys(state.cart).map(Number).filter(id => MENU.some(d => d.id === id));
-  const items = ids.map(id => { const d = MENU.find(x => x.id === id); return { id, name: d.name, price: d.price, qty: state.cart[id] }; });
+  const items = cartItems().map(it => ({ id: it.id, name: it.name, option: it.option, price: it.price, qty: it.qty }));
   const orderNo = "ORD" + Date.now().toString().slice(-6);
   const order = { id: Date.now(), no: orderNo, name, phone, dept, by, date, time, people, note, room, items, total: totalPrice(), ts: Date.now() };
   const conflict = await checkRoomConflict(order.room, order.date, order.time);
@@ -1432,10 +1506,10 @@ async function doPlaceOrder() {
   $("successView").style.display = "block";
   const sent = await sendEmail({
     subject: "【赛尔美餐厅】新订单通知 " + order.no,
-    message: "订单号：" + order.no + "\n客户：" + order.name + "\n联系电话：" + order.phone + "\n预订部门：" + (order.dept || "—") + "\n预订人：" + (order.by || "—") + "\n用餐日期：" + order.date + " " + order.time + "\n用餐人数：" + order.people + " 人\n备注：" + (order.note || "无") + "\n菜品：" + order.items.map(i => i.name + "×" + i.qty).join("、") + "\n合计：¥" + order.total + "\n包间菜单下载：https://smi100524.github.io/restaurant/menu.html?export=" + order.no,
+    message: "订单号：" + order.no + "\n客户：" + order.name + "\n联系电话：" + order.phone + "\n预订部门：" + (order.dept || "—") + "\n预订人：" + (order.by || "—") + "\n用餐日期：" + order.date + " " + order.time + "\n用餐人数：" + order.people + " 人\n备注：" + (order.note || "无") + "\n菜品：" + order.items.map(i => i.name + (i.option ? "（" + i.option + "）" : "") + "×" + i.qty).join("、") + "\n合计：¥" + order.total + "\n包间菜单下载：https://smi100524.github.io/restaurant/menu.html?export=" + order.no,
     no: order.no, customer: order.name, phone: order.phone, dept: order.dept || "", booker: order.by || "",
     date: order.date, time: order.time, people: order.people, note: order.note || "",
-    items: order.items.map(i => i.name + "×" + i.qty).join("、"), total: order.total,
+    items: order.items.map(i => i.name + (i.option ? "（" + i.option + "）" : "") + "×" + i.qty).join("、"), total: order.total,
     download_url: "https://smi100524.github.io/restaurant/menu.html?export=" + order.no
   });
   toast(sent ? "🎉 预订已确认，已邮件通知" : "🎉 预订已确认");
@@ -1459,6 +1533,7 @@ function renderViewOrder(o) {
     return '<div class="row"><span>' + k + '</span><b>' + esc(v) + '</b></div>';
   }).join("");
   var items = (o.items || []).map(function (i) {
+    return '<div class="row"><span>' + esc(i.name) + (i.option ? '（' + esc(i.option) + '）' : '') + ' × ' + i.qty + '</span><b>¥' + (i.price * i.qty) + '</b></div>';
     return '<div class="row"><span>' + esc(i.name) + ' × ' + i.qty + '</span><b>¥' + (i.price * i.qty) + '</b></div>';
   }).join("");
   $("viewItems").innerHTML = items + '<div class="row grand"><span>合计</span><b>' + fmt(o.total) + '</b></div>';

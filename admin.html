@@ -249,6 +249,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
 }
 .tag-options label.on{border-color:var(--green);color:var(--green);background:#eef3ec}
 .tag-options input{accent-color:var(--green)}
+.opt-list{display:flex;flex-direction:column;gap:8px}
+.opt-row{display:flex;gap:8px;align-items:center}
+.opt-row input[type=text]{flex:1.4}
+.opt-row input[type=number]{flex:1;min-width:90px}
+.opt-row button{flex:0 0 auto;padding:6px 10px}
 .img-box{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
 #ePreview{
   width:112px;height:112px;object-fit:cover;border-radius:6px;
@@ -562,6 +567,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
         <div class="tag-options" id="eTags"></div>
       </div>
       <div class="field">
+        <label>规格 / 份量价格（选填）</label>
+        <div class="opt-list" id="eOptList"></div>
+        <button class="ghost" id="addOpt" type="button" style="margin-top:6px">＋ 添加规格</button>
+        <div class="hint">如：6人份 168、8人份 198、10人份 228；不填则按上方价格</div>
+      </div>
+      </div>
+      <div class="field">
         <label>展示图片</label>
         <div class="img-box">
           <img id="ePreview" alt="图片预览" class="empty">
@@ -747,7 +759,7 @@ async function loadData() {
       data.dishes = rows.map(r => ({
         id: r.id, name: r.name, en: r.en || "", price: +r.price, cat: r.cat,
         desc: r.description || "", emoji: r.emoji || "🍽️",
-        tags: Array.isArray(r.tags) ? r.tags : [], img: ""
+        tags: Array.isArray(r.tags) ? r.tags : [], img: "", options: Array.isArray(r.options) ? r.options : []
       }));
       data.categories = await mergedCats(data.dishes);
       ok = true;
@@ -770,7 +782,7 @@ async function saveData() {
   if (!menuImagesLoaded) await loadMenuImagesAdmin();
   try {
     const dirty = data.dishes.filter(d => dirtyIds.has(d.id));
-    const rows = dirty.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji || "🍽️", tags: d.tags || [], img: d.img || "" }));
+    const rows = dirty.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji || "🍽️", tags: d.tags || [], img: d.img || "", options: Array.isArray(d.options) ? d.options : [] }));
     if (rows.length) {
     await sbFetch("menu", {
       method: "POST",
@@ -929,10 +941,40 @@ $("dishTable").addEventListener("click", async e => {
 
 /* ============ 菜品编辑 ============ */
 $("addDish").addEventListener("click", () => openEditor(null));
+let editOpts = [];
+function renderOptList() {
+  const el = $("eOptList");
+  if (!el) return;
+  el.innerHTML = editOpts.map((o, i) => {
+    const lbl = String(o.label || "");
+    const pr = (o.price != null && o.price !== "") ? o.price : "";
+    return '<div class="opt-row" data-i="' + i + '">' +
+      '<input type="text" class="opt-label" value="' + esc(lbl) + '" placeholder="规格名，如 6人份">' +
+      '<input type="number" class="opt-price" min="0" step="0.5" value="' + pr + '" placeholder="价格">' +
+      '<button class="ghost" data-act="rm" type="button">✕</button></div>';
+  }).join("");
+}
+$("addOpt").addEventListener("click", () => { editOpts.push({ label: "", price: "" }); renderOptList(); });
+$("eOptList").addEventListener("input", e => {
+  const row = e.target.closest(".opt-row");
+  if (!row) return;
+  const i = +row.dataset.i;
+  if (e.target.classList.contains("opt-label")) editOpts[i].label = e.target.value;
+  else if (e.target.classList.contains("opt-price")) editOpts[i].price = parseFloat(e.target.value);
+});
+$("eOptList").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-act=rm]");
+  if (!btn) return;
+  const row = btn.closest(".opt-row");
+  const i = +row.dataset.i;
+  editOpts.splice(i, 1);
+  renderOptList();
+});
 function openEditor(id) {
   editingId = id == null ? nextId() : id;
   pendingImg = null; removedImg = false;
   const d = editingId == null ? null : data.dishes.find(x => x.id === editingId);
+  editOpts = (d && Array.isArray(d.options)) ? d.options.map(o => ({ label: (o.label || ""), price: o.price })) : [];
   $("editorTitle").textContent = d ? "编辑菜品" : "添加菜品";
   $("eName").value = d ? d.name : "";
   $("eEn").value = d ? (d.en || "") : "";
@@ -942,6 +984,7 @@ function openEditor(id) {
   $("eEmoji").value = d ? d.emoji : "🍽️";
   renderCatSelect();
   if (d && d.cat) $("eCat").value = d.cat;
+  renderOptList();
   $("eTags").innerHTML = TAG_LIST.map(t => {
     const on = !!(d && (d.tags || []).includes(t));
     return `<label class="${on ? "on" : ""}"><input type="checkbox" value="${t}" ${on ? "checked" : ""}>${t}</label>`;
@@ -1031,6 +1074,8 @@ $("saveDish").addEventListener("click", async () => {
     emoji: $("eEmoji").value.trim() || "🍽️",
     tags
   };
+  const validOpts = editOpts.filter(o => (String(o.label || "").trim()) && !isNaN(parseFloat(o.price)));
+  if (validOpts.length) dish.options = validOpts.map(o => ({ label: o.label.trim(), price: parseFloat(o.price) }));
   if (img) dish.img = img;
   if (editingId == null) data.dishes.push(dish);
   else { const ex = data.dishes.find(x => x.id === editingId); if (ex) Object.assign(ex, dish); else data.dishes.push(dish); }

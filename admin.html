@@ -752,6 +752,7 @@ async function loadData() {
   loadMenuImagesAdmin();
 }
 let saving = false;
+let dirtyIds = new Set();
 function showSaveProgress() { var p = document.getElementById("saveProgress"); if (p) { p.classList.add("show"); document.body.style.overflow = "hidden"; } }
 function hideSaveProgress() { var p = document.getElementById("saveProgress"); if (p) { p.classList.remove("show"); document.body.style.overflow = ""; } }
 async function saveData() {
@@ -760,14 +761,17 @@ async function saveData() {
   showSaveProgress();
   if (!menuImagesLoaded) await loadMenuImagesAdmin();
   try {
-    const rows = data.dishes.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji || "🍽️", tags: d.tags || [], img: d.img || "" }));
+    const dirty = data.dishes.filter(d => dirtyIds.has(d.id));
+    const rows = dirty.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji || "🍽️", tags: d.tags || [], img: d.img || "" }));
+    if (rows.length) {
     await sbFetch("menu", {
       method: "POST",
       body: JSON.stringify(rows),
       headers: { "Prefer": "resolution=merge-duplicates" },
       timeout: 60000
     });
-    const localIds = rows.map(r => r.id);
+    }
+    const localIds = data.dishes.map(r => r.id);
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const cloud = await sbFetch("menu?select=id", { timeout: 20000 });
@@ -783,6 +787,7 @@ async function saveData() {
       }
     }
     await setSetting("categories", JSON.stringify(data.categories));
+    dirtyIds.clear();
     toast("已保存 ✓（已同步到云端）");
   } catch (e) {
     await idbSet("menu", { categories: data.categories, dishes: data.dishes });
@@ -873,7 +878,7 @@ $("catList").addEventListener("click", async e => {
     const nv = name.trim();
     if (data.categories.includes(nv)) return toast("该名称已存在");
     data.categories = data.categories.map(c => c === cat ? nv : c);
-    data.dishes.forEach(d => { if (d.cat === cat) d.cat = nv; });
+    data.dishes.forEach(d => { if (d.cat === cat) { d.cat = nv; dirtyIds.add(d.id); } });
     saveData(); renderAllAdmin();
   } else if (act === "del") {
     const n = data.dishes.filter(d => d.cat === cat).length;
@@ -881,7 +886,7 @@ $("catList").addEventListener("click", async e => {
     data.categories = data.categories.filter(c => c !== cat);
     if (n) {
       if (!data.categories.includes("其他")) data.categories.push("其他");
-      data.dishes.forEach(d => { if (d.cat === cat) d.cat = "其他"; });
+      data.dishes.forEach(d => { if (d.cat === cat) { d.cat = "其他"; dirtyIds.add(d.id); } });
     }
     saveData(); renderAllAdmin();
   }
@@ -985,6 +990,7 @@ $("rowImgFile").addEventListener("change", async e => {
   rd.onload = async () => {
     const d = data.dishes.find(x => x.id === targetId);
     if (d) {
+      dirtyIds.add(targetId);
       d.img = rd.result;
       await saveData();
       renderAllAdmin();
@@ -1018,6 +1024,7 @@ $("saveDish").addEventListener("click", async () => {
   if (img) dish.img = img;
   if (editingId == null) data.dishes.push(dish);
   else { const ex = data.dishes.find(x => x.id === editingId); if (ex) Object.assign(ex, dish); else data.dishes.push(dish); }
+  dirtyIds.add(dish.id);
   closeEditor();
   await saveData();
   renderAllAdmin();
@@ -1223,6 +1230,7 @@ async function doImport(rows) {
     };
     if (img) dish.img = img;
     data.dishes.push(dish);
+    dirtyIds.add(dish.id);
     existing.add(name);
     added++;
   }

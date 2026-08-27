@@ -1519,6 +1519,20 @@ async function getAdminPw() {
 function isLoggedIn() {
   try { return sessionStorage.getItem("swxc_admin_in") === "1"; } catch (e) { return false; }
 }
+async function loadAllAdminData() {
+  var pl = document.getElementById("pageLoader");
+  if (pl) pl.classList.remove("done");
+  await loadData();
+  await loadDataAll();
+  renderAllAdmin();
+  renderDataAll();
+  loadEmailForm();
+  loadHomeEditor();
+  const w = document.querySelector(".wrap");
+  if (w) w.style.display = "block";
+  if (pl) pl.classList.add("done");
+}
+
 async function tryLogin() {
   const pw = await getAdminPw();
   if ($("loginPw").value === pw) {
@@ -1526,8 +1540,9 @@ async function tryLogin() {
     $("loginView").style.display = "none";
     const w = document.querySelector(".wrap");
     if (w) w.style.display = "block";
-    $("loginPw").value = "";
+    await loadAllAdminData();
     toast("欢迎回来 👋");
+    $("loginPw").value = "";
   } else {
     toast("密码错误，请重试");
     $("loginPw").value = "";
@@ -1821,18 +1836,17 @@ function bindDishEditorTranslate() {
   enEl.addEventListener("input", () => { enEl.dataset.auto = ""; });
 }
 (async function init() {
-  await loadData();
-  await loadDataAll();
-  renderAllAdmin();
-  renderDataAll();
-  loadEmailForm();
   bindHomeEditor();
-  loadHomeEditor();
   bindDishEditorTranslate();
-  refreshLoginState();
-  var __w = Math.max(0, 1000 - (Date.now() - __loadStart));
-  setTimeout(function () { var pl = document.getElementById("pageLoader"); if (pl) pl.classList.add("done"); }, __w);
-  setTimeout(function () { var pl2 = document.getElementById("pageLoader"); if (pl2) pl2.classList.add("done"); }, 10000);
+  if (isLoggedIn()) {
+    await loadAllAdminData();
+  } else {
+    $("loginView").style.display = "flex";
+    const w = document.querySelector(".wrap");
+    if (w) w.style.display = "none";
+    var pl = document.getElementById("pageLoader");
+    if (pl) pl.classList.add("done");
+  }
 })();
 </script>
 <!-- 保存进度窗 -->

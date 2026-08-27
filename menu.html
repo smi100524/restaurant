@@ -221,11 +221,13 @@ input,textarea,select{font-family:inherit}
 .step-btn:active{transform:scale(.9)}
 .step-num{min-width:28px;text-align:center;font-weight:700;font-size:15px}
 .add-btn{
-  width:32px;height:32px;border-radius:4px;
-  background:var(--celadon);color:#f6efe0;font-size:20px;font-weight:700;line-height:1;
+  min-width:32px;height:32px;border-radius:4px;padding:0 7px;
+  background:var(--celadon);color:#f6efe0;font-size:16px;font-weight:700;line-height:1;
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 3px 8px rgba(95,127,121,.3);
+  white-space:nowrap;
 }
+.field input.invalid{border-color:var(--cinnabar)!important;box-shadow:0 0 0 2px rgba(158,59,44,.12)}
 .empty{text-align:center;color:var(--sub);padding:60px 20px;font-size:14px;grid-column:1/-1;letter-spacing:1px}
 .empty .e{font-size:46px;display:block;margin-bottom:12px}
 /* ===== 底部悬浮栏 ===== */
@@ -584,11 +586,11 @@ input,textarea,select{font-family:inherit}
         <div class="field-row">
           <div class="field">
             <label>客户</label>
-            <input id="fName" type="text" placeholder="如：王女士" autocomplete="off">
+            <input id="fName" type="text" placeholder="请填写客户名称" autocomplete="off">
           </div>
           <div class="field">
             <label>联系电话</label>
-            <input id="fPhone" type="tel" placeholder="手机号" autocomplete="off">
+            <input id="fPhone" type="tel" placeholder="填写真实手机号" autocomplete="off">
           </div>
         </div>
         <div class="field-row">
@@ -598,7 +600,7 @@ input,textarea,select{font-family:inherit}
           </div>
           <div class="field">
             <label>预订人</label>
-            <input id="fBy" type="text" placeholder="如：张经理" autocomplete="off">
+            <input id="fBy" type="text" placeholder="请填写真实姓名" autocomplete="off">
           </div>
         </div>
         <div class="field-row">
@@ -633,7 +635,7 @@ input,textarea,select{font-family:inherit}
       </div>
       <div class="modal-foot foot-split">
         <span class="step-hint" id="stepHint"></span>
-        <button class="submit-btn" id="toConfirm" type="button">下一步：确认预订</button>
+        <button class="submit-btn" id="toConfirm" type="button">提交预订信息</button>
       </div>
     </div>
     <div id="stepConfirm" style="display:none">
@@ -1448,7 +1450,16 @@ function getOrderHints() {
   }
   return hints;
 }
+$("fPhone").addEventListener("input", () => {
+  const v = $("fPhone").value.trim();
+  if (v && !/^1\d{10}$/.test(v)) $("fPhone").classList.add("invalid");
+  else $("fPhone").classList.remove("invalid");
+});
 function proceedToConfirm() {
+  const phoneV = $("fPhone").value.trim();
+  if (!phoneV) { toast("请填写真实手机号"); $("fPhone").focus(); $("fPhone").classList.add("invalid"); return; }
+  if (!/^1\d{10}$/.test(phoneV)) { toast("手机号需为11位数字，请重新填写"); $("fPhone").focus(); $("fPhone").classList.add("invalid"); return; }
+  $("fPhone").classList.remove("invalid");
   const room = (document.querySelector('input[name="fRoom"]:checked') || {}).value || "西式包间";
   const info = [
     ["客户", $("fName").value.trim() || "客人"],

@@ -1111,18 +1111,18 @@ function renderMenu() {
     ).join("");
     const hot = (d.tags || []).includes("招牌");
     const hasImg = !!(d.img && d.img.trim());
-    const urgent = idx < 10 ? ' data-urgent="1"' : "";
+    const urgent = idx < 10 ? ' data-urgent="1" fetchpriority="high"' : ' fetchpriority="low"';
     const imgTag = hasImg
-      ? `<img class="dish-img show" src="${d.img}" alt="${d.name}"${urgent}>`
-      : `<img class="dish-img" alt="${d.name}" data-dishid="${d.id}"${urgent}>`;
+      ? `<img class="dish-img show" src="${d.img}" alt="${d.name}"${urgent} onerror="dishImgOnError(this)">`
+      : `<img class="dish-img" alt="${d.name}" data-dishid="${d.id}"${urgent} onerror="dishImgOnError(this)">`;
     const hasOpts = !!(d.options && d.options.length);
-    const stepper = (qty > 0 && !hasOpts) ? `
+    const stepper = (qty > 0) ? `
       <div class="stepper">
         <button class="step-btn minus" data-id="${d.id}" type="button">−</button>
         <span class="step-num">${qty}</span>
         <button class="step-btn plus" data-id="${d.id}" type="button">+</button>
       </div>` : `
-      <button class="add-btn" data-id="${d.id}" type="button">+${qty > 0 ? " (" + qty + ")" : ""}</button>`;
+      <button class="add-btn" data-id="${d.id}" type="button">+</button>`;
     return `
     <div class="dish" data-id="${d.id}">
       <div class="dish-photo" style="background:${photoGradient(d.cat)}">
@@ -1147,6 +1147,15 @@ function renderMenu() {
 }
 /* 没有上传图片的菜，自动找 images 文件夹里同编号的图片 */
 const dishImgCache = {};
+/* 图片加载失败：重试一次（带新参数绕过缓存），仍失败则隐藏显示 emoji */
+function dishImgOnError(el) {
+  try {
+    if (el.dataset.tries) { el.classList.remove("show"); return; }
+    el.dataset.tries = "1";
+    const src = el.getAttribute("src") || "";
+    if (src) el.src = src + (src.indexOf("?") > -1 ? "&r=" : "?r=") + Date.now();
+  } catch (e) {}
+}
 function dishImgSrc(d) {
   if (d.img && d.img.trim()) return d.img;
   if (dishImgCache[d.id]) return dishImgCache[d.id];
@@ -1335,8 +1344,20 @@ document.addEventListener("click", e => {
     if (ad && ad.options && ad.options.length) openOptPicker(+add.dataset.id);
     else { soupHint(+add.dataset.id); addToCart(+add.dataset.id, 1); }
   }
-  else if (plus) { soupHint(+plus.dataset.id); addToCart(+plus.dataset.id, 1, plus.dataset.opt || null); }
-  else if (minus) addToCart(+minus.dataset.id, -1, minus.dataset.opt || null);
+  else if (plus) {
+    const pd = MENU.find(x => x.id === +plus.dataset.id);
+    if (pd && pd.options && pd.options.length) openOptPicker(+plus.dataset.id);
+    else { soupHint(+plus.dataset.id); addToCart(+plus.dataset.id, 1, plus.dataset.opt || null); }
+  }
+  else if (minus) {
+    const mId = +minus.dataset.id;
+    const md = MENU.find(x => x.id === mId);
+    if (md && md.options && md.options.length) {
+      const sel = state.cart[mId];
+      const keys = sel ? Object.keys(sel) : [];
+      if (keys.length) addToCart(mId, -1, keys[keys.length - 1]);
+    } else { addToCart(mId, -1, minus.dataset.opt || null); }
+  }
   else if (del || del2) { addToCart(+(del || del2).dataset.id, -999, (del || del2).dataset.opt || null); toast("已移除"); }
 });
 

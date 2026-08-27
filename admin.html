@@ -290,6 +290,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
 @keyframes plb{0%,80%,100%{transform:scale(.6);opacity:.35}40%{transform:scale(1);opacity:1}}
 .pl-text{font-size:12px;color:var(--sub);letter-spacing:3px;margin-top:12px}
 .page-loader .mount{position:absolute;left:0;right:0;bottom:0;width:100%;height:auto;pointer-events:none;opacity:.8}
+.sp-dots{display:flex;justify-content:center;gap:9px;margin-bottom:16px}
+.sp-dots span{width:10px;height:10px;border-radius:50%;background:var(--green);animation:plb 1s infinite ease-in-out}
+.sp-dots span:nth-child(2){animation-delay:.15s}
+.sp-dots span:nth-child(3){animation-delay:.3s}
+.sp-text{font-size:15px;color:var(--ink);letter-spacing:3px}
 </style>
 </head><body>
 <div class="page-loader" id="pageLoader">
@@ -746,7 +751,13 @@ async function loadData() {
   }
   loadMenuImagesAdmin();
 }
+let saving = false;
+function showSaveProgress() { var p = document.getElementById("saveProgress"); if (p) { p.classList.add("show"); document.body.style.overflow = "hidden"; } }
+function hideSaveProgress() { var p = document.getElementById("saveProgress"); if (p) { p.classList.remove("show"); document.body.style.overflow = ""; } }
 async function saveData() {
+  if (saving) return;
+  saving = true;
+  showSaveProgress();
   if (!menuImagesLoaded) await loadMenuImagesAdmin();
   try {
     const rows = data.dishes.map(d => ({ id: d.id, name: d.name, en: d.en || "", price: d.price, cat: d.cat, description: d.desc || "", emoji: d.emoji || "🍽️", tags: d.tags || [], img: d.img || "" }));
@@ -776,6 +787,9 @@ async function saveData() {
   } catch (e) {
     await idbSet("menu", { categories: data.categories, dishes: data.dishes });
     toast("已保存（云端同步失败，已存本机）");
+  } finally {
+    saving = false;
+    hideSaveProgress();
   }
 }
 /* ============ 渲染 ============ */
@@ -901,7 +915,7 @@ $("dishTable").addEventListener("click", async e => {
 /* ============ 菜品编辑 ============ */
 $("addDish").addEventListener("click", () => openEditor(null));
 function openEditor(id) {
-  editingId = id == null ? null : id;
+  editingId = id == null ? nextId() : id;
   pendingImg = null; removedImg = false;
   const d = editingId == null ? null : data.dishes.find(x => x.id === editingId);
   $("editorTitle").textContent = d ? "编辑菜品" : "添加菜品";
@@ -1003,10 +1017,10 @@ $("saveDish").addEventListener("click", async () => {
   };
   if (img) dish.img = img;
   if (editingId == null) data.dishes.push(dish);
-  else { const ex = data.dishes.find(x => x.id === editingId); if (ex) Object.assign(ex, dish); }
+  else { const ex = data.dishes.find(x => x.id === editingId); if (ex) Object.assign(ex, dish); else data.dishes.push(dish); }
+  closeEditor();
   await saveData();
   renderAllAdmin();
-  closeEditor();
   toast("菜品已保存 ✓");
 });
 
@@ -1672,6 +1686,9 @@ function bindHomeEditor() {
   $("saveHome").addEventListener("click", saveHome);
 }
 async function saveHome() {
+  if (saving) return;
+  saving = true;
+  showSaveProgress();
   try {
     const rows = [
       ...homeRooms.map((r, i) => ({ id: r.id || null, type: "room", sort: i, name_cn: r.name_cn || "", name_en: r.name_en || "", image: r.image || "" })),
@@ -1680,7 +1697,14 @@ async function saveHome() {
     const withId = rows.filter(r => r.id != null);
     const withoutId = rows.filter(r => r.id == null);
     if (withId.length) await sbFetch("home_cards", { method: "POST", body: JSON.stringify(withId), headers: { "Prefer": "resolution=merge-duplicates" }, timeout: 60000 });
-    if (withoutId.length) await sbFetch("home_cards", { method: "POST", body: JSON.stringify(withoutId), timeout: 60000 });
+    if (withoutId.length) {
+      const resp = await sbFetch("home_cards", { method: "POST", body: JSON.stringify(withoutId), headers: { "Prefer": "return=representation" }, timeout: 60000 });
+      if (Array.isArray(resp) && resp.length) {
+        let ri = 0;
+        homeRooms.forEach(r => { if (r.id == null && ri < resp.length) r.id = resp[ri++].id; });
+        homeDishes.forEach(d => { if (d.id == null && ri < resp.length) d.id = resp[ri++].id; });
+      }
+    }
     const cloud = await sbFetch("home_cards?select=id", { timeout: 20000 });
     const localIds = rows.map(r => r.id).filter(id => id != null);
     const stale = (cloud || []).map(c => c.id).filter(id => !localIds.includes(id));
@@ -1688,6 +1712,9 @@ async function saveHome() {
     toast("首页内容已保存 ✓（已同步到云端）");
   } catch (err) {
     toast("保存失败：" + (err && err.message ? err.message : err));
+  } finally {
+    saving = false;
+    hideSaveProgress();
   }
 }
 /* ============ 中文菜名 → 自动生成英文名 ============ */
@@ -1800,5 +1827,14 @@ function bindDishEditorTranslate() {
   setTimeout(function () { var pl2 = document.getElementById("pageLoader"); if (pl2) pl2.classList.add("done"); }, 10000);
 })();
 </script>
+<!-- 保存进度窗 -->
+<div class="modal" id="saveProgress" style="z-index:210">
+  <div class="modal-card" style="max-width:300px;text-align:center">
+    <div class="modal-body" style="padding:36px 24px">
+      <div class="sp-dots"><span></span><span></span><span></span></div>
+      <div class="sp-text">正在保存…</div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

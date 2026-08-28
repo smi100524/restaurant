@@ -1701,7 +1701,8 @@ function buildInviteLines(o) {
     { label: "预订人", value: o.by || "—" },
     { label: "用餐时间", value: ((fmtDateCN(o.date) + " " + (o.time || "")).trim()) || "—" },
     { label: "用餐人数", value: (o.people || 1) + " 人" },
-    { label: "包间", value: o.room || "西式包间" }
+    { label: "包间", value: o.room || "西式包间" },
+    { label: "备注", value: o.note || "—" }
   ];
   const items = (o.items || []).map(function (it, i) {
     return (i + 1) + ". " + (it.name || "") + (it.option ? "（" + it.option + "）" : "") + "　×" + it.qty + "　¥" + (it.price * it.qty);
@@ -1721,115 +1722,174 @@ function wrapTextWidth(ctx, text, maxWidth) {
   if (line) res.push(line);
   return res.length ? res : [""];
 }
-/* 计算邀请函信息区内容高度与行 */
-function measureInvite(ctx, content, W) {
-  const lineH = 38, rowGap = 10, boxTop = 205 + 408;
-  const boxRight = W - 130, valueX = W / 2 + 40, valueMaxW = boxRight - 20 - valueX;
-  ctx.font = "29px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  const labelRows = content.rows.map(function (r) { return { label: r.label, lines: wrapTextWidth(ctx, r.value, valueMaxW) }; });
-  const itemLines = content.items.length ? content.items : ["—"];
-  const tailRows = [
-    { label: "合计", lines: wrapTextWidth(ctx, "¥" + content.total, valueMaxW) },
-    { label: "备注", lines: wrapTextWidth(ctx, content.note || "—", valueMaxW) }
-  ];
-  let totalLines = 0;
-  labelRows.forEach(function (r) { totalLines += r.lines.length; });
-  totalLines += itemLines.length;
-  tailRows.forEach(function (r) { totalLines += r.lines.length; });
-  const innerH = 46 + totalLines * lineH + (totalLines - 1) * rowGap + 34;
-  const boxH = innerH + 16;
-  return { labelRows: labelRows, itemLines: itemLines, tailRows: tailRows, boxH: boxH, boxTop: boxTop, valueX: valueX, valueMaxW: valueMaxW, lineH: lineH, rowGap: rowGap };
+/* 邀请函布局：左栏菜单 + 右栏（包间照片 + 预订信息） */
+function layoutInvite(ctx, content, W) {
+  const LEFT_X = 108, LEFT_W = 424, RIGHT_X = 560, RIGHT_W = 404, PHOTO_H = 252;
+  const lineH = 34, pad = 22, gap = 4;
+  const fontItem = "24px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  const fontVal = "24px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  // 左栏：菜单
+  ctx.font = fontItem;
+  const itemLines = [];
+  (content.items.length ? content.items : ["—"]).forEach(function (it) {
+    wrapTextWidth(ctx, it, LEFT_W - pad * 2).forEach(function (l) { itemLines.push(l); });
+  });
+  const totalLines = wrapTextWidth(ctx, "合计：¥" + content.total, LEFT_W - pad * 2);
+  const menuInner = 84 + itemLines.length * lineH + Math.max(0, itemLines.length - 1) * gap + 26 + totalLines.length * lineH + 24;
+  const leftH = menuInner + pad;
+  // 右栏：信息
+  ctx.font = fontVal;
+  const infoLines = content.rows.map(function (r) {
+    return { label: r.label, lines: wrapTextWidth(ctx, r.value, RIGHT_W - pad * 2 - 146) };
+  });
+  const infoCount = infoLines.reduce(function (s, r) { return s + r.lines.length; }, 0);
+  const rightInner = 24 + PHOTO_H + 22 + infoCount * lineH + Math.max(0, infoCount - 1) * gap + 20;
+  const rightH = rightInner + pad;
+  const contentH = Math.max(leftH, rightH);
+  const headerH = 530;
+  const height = Math.max(1520, headerH + contentH + 210);
+  return { LEFT_X: LEFT_X, LEFT_W: LEFT_W, RIGHT_X: RIGHT_X, RIGHT_W: RIGHT_W, PHOTO_H: PHOTO_H, lineH: lineH, pad: pad, gap: gap, fontItem: fontItem, fontVal: fontVal, itemLines: itemLines, totalLines: totalLines, infoLines: infoLines, leftH: leftH, rightH: rightH, headerH: headerH, height: height };
 }
-function paintInvite(cv, ctx, W, H, o, logo, content) {
+function roomImageSrc(room) {
+  const base = "https://lyjvwogbnnithedromac.supabase.co/storage/v1/object/public/dish-images/";
+  return /中式/.test(room || "") ? [base + "home_43.jpg", "images/room-cn.jpg"] : [base + "home_42.jpg", "images/room-west.jpg"];
+}
+function loadInviteImg(src, cross) {
+  return new Promise(function (res) {
+    const im = new Image();
+    if (cross) im.crossOrigin = "anonymous";
+    im.onload = function () { res(im); };
+    im.onerror = function () { res(null); };
+    im.src = src;
+  });
+}
+function paintInvite(cv, ctx, W, H, o, logo, content, room) {
   if (!content) content = buildInviteLines(o);
-  const paper = "#f5f0e4", ink = "#2f3a34", sub = "#7a8078", cinnabar = "#9e3b2c", gold = "#b09a68", labelC = "#8a674d", valC = "#333333";
-  const m = measureInvite(ctx, content, W);
+  const L = layoutInvite(ctx, content, W);
+  const paper = "#f6f1e5", ink = "#2f3a34", sub = "#7a8078", cinnabar = "#9e3b2c", gold = "#b09a68", labelC = "#8a674d", valC = "#333333";
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = gold;
-  ctx.lineWidth = 5;
-  ctx.strokeRect(38, 38, W - 76, H - 76);
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(62, 62, W - 124, H - 124);
+  ctx.lineWidth = 3;
+  ctx.strokeRect(30, 30, W - 60, H - 60);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(176,154,104,.55)";
+  ctx.strokeRect(46, 46, W - 92, H - 92);
+  // 头部
   let y = 205;
   if (logo && logo.naturalWidth) {
-    const lh = 80, lw = logo.naturalWidth * lh / logo.naturalHeight;
-    if (lw <= 360) ctx.drawImage(logo, (W - lw) / 2, y - lh - 14, lw, lh);
-    else { const lw2 = 360, lh2 = 360 * logo.naturalHeight / logo.naturalWidth; ctx.drawImage(logo, (W - lw2) / 2, y - lh2 - 14, lw2, lh2); }
+    const lw0 = logo.naturalWidth * 76 / logo.naturalHeight;
+    const lw2 = Math.min(lw0, 340);
+    const lh2 = lw2 * logo.naturalHeight / logo.naturalWidth;
+    ctx.drawImage(logo, (W - lw2) / 2, y - lh2 - 16, lw2, lh2);
   }
   ctx.textAlign = "center";
   ctx.fillStyle = gold;
-  ctx.font = "25px Arial, sans-serif";
-  ctx.fillText("S M I S S   R E S T A U R A N T", W / 2, y + 26);
+  ctx.font = "23px Arial, sans-serif";
+  ctx.fillText("S M I S S   R E S T A U R A N T", W / 2, y + 24);
   ctx.fillStyle = ink;
-  ctx.font = "bold 62px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("赛尔美餐厅", W / 2, y + 122);
-  drawDivider(ctx, W / 2, y + 172, gold);
+  ctx.font = "bold 54px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("赛尔美餐厅", W / 2, y + 108);
+  drawDivider(ctx, W / 2, y + 150, gold);
   ctx.fillStyle = cinnabar;
-  ctx.font = "50px KaiTi, STKaiti, 楷体, serif";
-  ctx.fillText("诚 挚 邀 请", W / 2, y + 252);
+  ctx.font = "44px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("诚 挚 邀 请", W / 2, y + 224);
   ctx.fillStyle = sub;
-  ctx.font = "28px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("诚邀您共赴这场食光之约", W / 2, y + 330);
+  ctx.font = "24px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("诚邀您共赴这场食光之约", W / 2, y + 284);
 
-  const boxLeft = 130, boxRight = W - 130;
+  const contentTop = L.headerH;
+  // 左栏：菜单卡片
+  const lx = L.LEFT_X, lw = L.LEFT_W;
   ctx.fillStyle = "rgba(255,252,244,.85)";
-  roundRect(ctx, boxLeft, m.boxTop, boxRight - boxLeft, m.boxH, 18, false);
+  roundRect(ctx, lx, contentTop, lw, L.leftH, 14, false);
   ctx.strokeStyle = "rgba(176,154,104,.6)";
-  ctx.lineWidth = 2;
-  roundRect(ctx, boxLeft, m.boxTop, boxRight - boxLeft, m.boxH, 18, true);
-  let ry = m.boxTop + 46;
-  function drawRow(label, lines, vFont) {
-    ctx.textAlign = "right";
-    ctx.fillStyle = labelC;
-    ctx.font = "28px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-    ctx.fillText(label + "：", W / 2 - 30, ry + 30);
-    ctx.textAlign = "left";
-    ctx.fillStyle = valC;
-    ctx.font = vFont || "29px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-    lines.forEach(function (ln, i) { ctx.fillText(ln, m.valueX, ry + 30 + i * m.lineH); });
-    ry += lines.length * m.lineH + m.rowGap;
-  }
-  m.labelRows.forEach(function (r) { drawRow(r.label, r.lines); });
-  // 菜品清单
-  ctx.textAlign = "right";
-  ctx.fillStyle = labelC;
-  ctx.font = "28px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("菜品：", W / 2 - 30, ry + 30);
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, lx, contentTop, lw, L.leftH, 14, true);
+  ctx.textAlign = "center";
+  ctx.fillStyle = ink;
+  ctx.font = "bold 32px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("菜　单", lx + lw / 2, contentTop + 46);
   ctx.textAlign = "left";
   ctx.fillStyle = valC;
-  ctx.font = "26px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  m.itemLines.forEach(function (ln, i) { ctx.fillText(ln, m.valueX, ry + 30 + i * m.lineH); });
-  ry += m.itemLines.length * m.lineH + m.rowGap;
-  m.tailRows.forEach(function (r) { drawRow(r.label, r.lines); });
+  ctx.font = L.fontItem;
+  let ly = contentTop + 86;
+  L.itemLines.forEach(function (ln) { ctx.fillText(ln, lx + L.pad, ly); ly += L.lineH; });
+  ly += 12;
+  ctx.fillStyle = cinnabar;
+  ctx.font = "bold 26px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  L.totalLines.forEach(function (ln) { ctx.fillText(ln, lx + L.pad, ly); ly += L.lineH; });
 
+  // 右栏：照片 + 信息
+  const rx = L.RIGHT_X, rw = L.RIGHT_W;
+  ctx.fillStyle = "rgba(255,252,244,.85)";
+  roundRect(ctx, rx, contentTop, rw, L.rightH, 14, false);
+  ctx.strokeStyle = "rgba(176,154,104,.6)";
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, rx, contentTop, rw, L.rightH, 14, true);
+  const pw = rw - 16, ph = L.PHOTO_H - 8;
+  if (room && room.naturalWidth) {
+    const scale = Math.max(pw / room.naturalWidth, ph / room.naturalHeight);
+    const sw = pw / scale, sh = ph / scale;
+    const sx = (room.naturalWidth - sw) / 2, sy = (room.naturalHeight - sh) / 2;
+    ctx.save();
+    roundRect(ctx, rx + 8, contentTop + 12, pw, ph, 10, false);
+    ctx.clip();
+    ctx.drawImage(room, sx, sy, sw, sh, rx + 8, contentTop + 12, pw, ph);
+    ctx.restore();
+    ctx.strokeStyle = "rgba(176,154,104,.5)";
+    ctx.lineWidth = 1;
+    roundRect(ctx, rx + 8, contentTop + 12, pw, ph, 10, true);
+  } else {
+    ctx.fillStyle = "#efe7d6";
+    roundRect(ctx, rx + 8, contentTop + 12, pw, ph, 10, false);
+    ctx.fillStyle = sub;
+    ctx.textAlign = "center";
+    ctx.font = "22px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+    ctx.fillText(o.room || "包间", rx + rw / 2, contentTop + 12 + ph / 2 + 8);
+  }
+  // 信息行
+  const labelRX = rx + L.pad + 118, valX = rx + L.pad + 134;
+  let ry = contentTop + 24 + L.PHOTO_H + 20;
+  L.infoLines.forEach(function (r) {
+    ctx.textAlign = "right";
+    ctx.fillStyle = labelC;
+    ctx.font = L.fontVal;
+    ctx.fillText(r.label + "：", labelRX, ry + 8);
+    ctx.textAlign = "left";
+    ctx.fillStyle = valC;
+    r.lines.forEach(function (ln, i) { ctx.fillText(ln, valX, ry + 8 + i * L.lineH); });
+    ry += r.lines.length * L.lineH + L.gap;
+  });
+
+  // 页脚
   ctx.textAlign = "center";
   ctx.fillStyle = ink;
-  ctx.font = "38px KaiTi, STKaiti, 楷体, serif";
-  ctx.fillText("一席烟火气，万般皆如意", W / 2, H - 200);
+  ctx.font = "34px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("一席烟火气，万般皆如意", W / 2, H - 150);
   ctx.fillStyle = gold;
-  ctx.font = "26px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("欢迎品鉴 · 共赴食光", W / 2, H - 136);
+  ctx.font = "24px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("欢迎品鉴 · 共赴食光", W / 2, H - 96);
   const url = cv.toDataURL("image/png");
   $("inviteImg").src = url;
   window.__inviteUrl = url;
   $("inviteModal").classList.add("show");
   document.body.style.overflow = "hidden";
 }
-function drawInvite(o) {
+async function drawInvite(o) {
   const content = buildInviteLines(o);
   const W = 1080;
   const tmp = document.createElement("canvas");
-  const tctx = tmp.getContext("2d");
-  const m = measureInvite(tctx, content, W);
-  const H = Math.max(1620, m.boxTop + m.boxH + 260);
+  const m = layoutInvite(tmp.getContext("2d"), content, W);
+  const H = m.height;
   const cv = document.createElement("canvas");
   cv.width = W; cv.height = H;
   const ctx = cv.getContext("2d");
-  const img = new Image();
-  img.onload = function () { paintInvite(cv, ctx, W, H, o, img, content); };
-  img.onerror = function () { paintInvite(cv, ctx, W, H, o, null, content); };
-  img.src = "images/logo.png";
+  const logo = await loadInviteImg("images/logo.png", false);
+  const srcs = roomImageSrc(o.room);
+  let room = await loadInviteImg(srcs[0], true);
+  if (!room) room = await loadInviteImg(srcs[1], false);
+  paintInvite(cv, ctx, W, H, o, logo, content, room);
 }
 $("inviteBtn").addEventListener("click", () => { if (lastOrder) drawInvite(lastOrder); else toast("暂无订单信息"); });
 $("closeInvite").addEventListener("click", () => { $("inviteModal").classList.remove("show"); document.body.style.overflow = ""; });

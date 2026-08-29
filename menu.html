@@ -1659,9 +1659,7 @@ function fmtDateCN(dateStr) {
   if (!dateStr) return "";
   const p = String(dateStr).split("-");
   if (p.length < 3) return dateStr;
-  const d = new Date(+p[0], +p[1] - 1, +p[2]);
-  const wk = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
-  return p[0] + "年" + p[1] + "月" + p[2] + "日 星期" + wk;
+  return p[0] + "年" + p[1] + "月" + p[2] + "日";
 }
 function wrapText(t, n) {
   const res = [];
@@ -1694,7 +1692,6 @@ function drawDivider(ctx, cx, y, color) {
 }
 function buildInviteLines(o) {
   const rows = [
-    { label: "订单号", value: o.no || "—" },
     { label: "客户", value: o.name || "—" },
     { label: "联系电话", value: o.phone || "—" },
     { label: "预订部门", value: o.dept || "—" },
@@ -1704,12 +1701,28 @@ function buildInviteLines(o) {
     { label: "包间", value: o.room || "西式包间" },
     { label: "备注", value: o.note || "—" }
   ];
-  const items = (o.items || []).map(function (it, i) {
-    return (i + 1) + ". " + (it.name || "") + (it.option ? "（" + it.option + "）" : "") + "　×" + it.qty + "　¥" + (it.price * it.qty);
+  const dishes = (o.items || []).map(function (it) {
+    var d = null;
+    try { d = MENU.find(function (x) { return x.id === it.id; }); } catch (e) {}
+    return { cn: it.name || "", en: (d && d.en) ? d.en : "" };
   });
-  return { rows: rows, items: items, total: o.total || 0, note: o.note || "" };
+  return { rows: rows, dishes: dishes, total: o.total || 0 };
 }
-/* 按实际文字宽度换行，避免长内容溢出 */
+/* 两端对齐绘制：把文字均匀撑满 [x0,x1] */
+function fillTextJustify(ctx, text, x0, x1, baseline) {
+  const s = String(text == null ? "" : text);
+  if (!s) return;
+  const avail = x1 - x0;
+  const w = ctx.measureText(s).width;
+  if (w >= avail || s.length < 2) { ctx.fillText(s, x0, baseline); return; }
+  const gap = (avail - w) / (s.length - 1);
+  let x = x0;
+  for (let i = 0; i < s.length; i++) {
+    ctx.fillText(s.charAt(i), x, baseline);
+    x += ctx.measureText(s.charAt(i)).width + gap;
+  }
+}
+/* 按实际文字宽度换行 */
 function wrapTextWidth(ctx, text, maxWidth) {
   const res = [];
   let line = "";
@@ -1722,33 +1735,70 @@ function wrapTextWidth(ctx, text, maxWidth) {
   if (line) res.push(line);
   return res.length ? res : [""];
 }
-/* 邀请函布局：左栏菜单 + 右栏（包间照片 + 预订信息） */
-function layoutInvite(ctx, content, W) {
-  const LEFT_X = 108, LEFT_W = 424, RIGHT_X = 560, RIGHT_W = 404, PHOTO_H = 252;
-  const lineH = 34, pad = 22, gap = 4;
-  const fontItem = "24px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  const fontVal = "24px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  // 左栏：菜单
-  ctx.font = fontItem;
-  const itemLines = [];
-  (content.items.length ? content.items : ["—"]).forEach(function (it) {
-    wrapTextWidth(ctx, it, LEFT_W - pad * 2).forEach(function (l) { itemLines.push(l); });
+/* 水墨远山（复用首页的山水云纹） */
+function drawInkWash(ctx, W, H) {
+  const sx = W / 1440, bh = H * 0.22, sy = bh / 360, base = H - 4;
+  const bands = [
+    { color: "#5f7f79", opacity: 0.10, start: [0, 220], segs: [[[180, 150], [260, 260], [430, 190]], [[600, 120], [760, 240], [940, 170]], [[1100, 110], [1260, 210], [1440, 150]]] },
+    { color: "#5f7f79", opacity: 0.07, start: [0, 285], segs: [[[160, 235], [320, 305], [520, 245]], [[720, 185], [900, 295], [1120, 235]], [[1280, 185], [1380, 255], [1440, 225]]] },
+    { color: "#b09a68", opacity: 0.08, start: [0, 325], segs: [[[300, 265], [520, 335], [760, 285]], [[980, 245], [1220, 325], [1440, 275]]] }
+  ];
+  bands.forEach(function (b) {
+    ctx.save();
+    ctx.globalAlpha = b.opacity;
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.moveTo(b.start[0] * sx, base - (360 - b.start[1]) * sy);
+    b.segs.forEach(function (sg) {
+      ctx.bezierCurveTo(sg[0][0] * sx, base - (360 - sg[0][1]) * sy, sg[1][0] * sx, base - (360 - sg[1][1]) * sy, sg[2][0] * sx, base - (360 - sg[2][1]) * sy);
+    });
+    ctx.lineTo(W, base);
+    ctx.lineTo(0, base);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   });
-  const totalLines = wrapTextWidth(ctx, "合计：¥" + content.total, LEFT_W - pad * 2);
-  const menuInner = 84 + itemLines.length * lineH + Math.max(0, itemLines.length - 1) * gap + 26 + totalLines.length * lineH + 24;
-  const leftH = menuInner + pad;
-  // 右栏：信息
+}
+/* 布局：左栏（占满整页，菜名居中+英文小字） + 右栏（餐厅名/诗句 / 信息 / 竖版照片 / logo） */
+function layoutInvite(ctx, content, W) {
+  const LEFT_X = 64, LEFT_W = 400, RIGHT_X = 486, RIGHT_W = 448;
+  const pad = 26, dishGap = 16;
+  const fontCN = "27px KaiTi, STKaiti, 楷体, serif";
+  const fontEN = "13px Georgia, \"Times New Roman\", serif";
+  const fontVal = "20px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  const PHOTO_W = 300, PHOTO_H = 470;
+  // 左栏内容：每道菜（中文居中 + 英文小字）
+  ctx.font = fontCN;
+  const dishRows = (content.dishes.length ? content.dishes : [{ cn: "—", en: "" }]).map(function (dd) {
+    const cnLines = wrapTextWidth(ctx, dd.cn, LEFT_W - pad * 2);
+    ctx.font = fontEN;
+    const enLines = dd.en ? wrapTextWidth(ctx, dd.en, LEFT_W - pad * 2) : [];
+    ctx.font = fontCN;
+    return { cn: dd.cn, en: dd.en, cnLines: cnLines, enLines: enLines };
+  });
+  let leftContent = 78;
+  dishRows.forEach(function (r) {
+    leftContent += r.cnLines.length * 34 + (r.enLines.length ? 16 + r.enLines.length * 16 : 6) + dishGap;
+  });
+  // 右栏
   ctx.font = fontVal;
   const infoLines = content.rows.map(function (r) {
-    return { label: r.label, lines: wrapTextWidth(ctx, r.value, RIGHT_W - pad * 2 - 146) };
+    return { label: r.label, lines: wrapTextWidth(ctx, r.value, RIGHT_W - pad * 2 - 132) };
   });
   const infoCount = infoLines.reduce(function (s, r) { return s + r.lines.length; }, 0);
-  const rightInner = 24 + PHOTO_H + 22 + infoCount * lineH + Math.max(0, infoCount - 1) * gap + 20;
-  const rightH = rightInner + pad;
-  const contentH = Math.max(leftH, rightH);
-  const headerH = 530;
-  const height = Math.max(1520, headerH + contentH + 210);
-  return { LEFT_X: LEFT_X, LEFT_W: LEFT_W, RIGHT_X: RIGHT_X, RIGHT_W: RIGHT_W, PHOTO_H: PHOTO_H, lineH: lineH, pad: pad, gap: gap, fontItem: fontItem, fontVal: fontVal, itemLines: itemLines, totalLines: totalLines, infoLines: infoLines, leftH: leftH, rightH: rightH, headerH: headerH, height: height };
+  const brandTopH = 225;
+  const infoH = 40 + infoCount * 26 + Math.max(0, infoCount - 1) * 2 + 16;
+  const brandBottomH = 116;
+  const rightContent = brandTopH + infoH + PHOTO_H + brandBottomH + 42;
+  const contentHeight = Math.max(leftContent, rightContent, 1300);
+  const height = 52 + contentHeight + 64;
+  return {
+    LEFT_X: LEFT_X, LEFT_W: LEFT_W, RIGHT_X: RIGHT_X, RIGHT_W: RIGHT_W,
+    pad: pad, dishGap: dishGap, fontCN: fontCN, fontEN: fontEN, fontVal: fontVal,
+    PHOTO_W: PHOTO_W, PHOTO_H: PHOTO_H, dishRows: dishRows, infoLines: infoLines,
+    infoH: infoH, brandTopH: brandTopH, brandBottomH: brandBottomH,
+    contentHeight: contentHeight, contentTop: 52, height: height
+  };
 }
 function roomImageSrc(room) {
   const base = "https://lyjvwogbnnithedromac.supabase.co/storage/v1/object/public/dish-images/";
@@ -1766,110 +1816,136 @@ function loadInviteImg(src, cross) {
 function paintInvite(cv, ctx, W, H, o, logo, content, room) {
   if (!content) content = buildInviteLines(o);
   const L = layoutInvite(ctx, content, W);
-  const paper = "#f6f1e5", ink = "#2f3a34", sub = "#7a8078", cinnabar = "#9e3b2c", gold = "#b09a68", labelC = "#8a674d", valC = "#333333";
+  const paper = "#f6f1e4", ink = "#2f3a34", sub = "#7a8078", cinnabar = "#9e3b2c", gold = "#b09a68", labelC = "#8a674d", valC = "#333333";
   ctx.fillStyle = paper;
   ctx.fillRect(0, 0, W, H);
+  drawInkWash(ctx, W, H);
   ctx.strokeStyle = gold;
   ctx.lineWidth = 3;
-  ctx.strokeRect(30, 30, W - 60, H - 60);
+  ctx.strokeRect(20, 20, W - 40, H - 40);
   ctx.lineWidth = 1;
-  ctx.strokeStyle = "rgba(176,154,104,.55)";
-  ctx.strokeRect(46, 46, W - 92, H - 92);
-  // 头部
-  let y = 205;
-  if (logo && logo.naturalWidth) {
-    const lw0 = logo.naturalWidth * 76 / logo.naturalHeight;
-    const lw2 = Math.min(lw0, 340);
-    const lh2 = lw2 * logo.naturalHeight / logo.naturalWidth;
-    ctx.drawImage(logo, (W - lw2) / 2, y - lh2 - 16, lw2, lh2);
-  }
-  ctx.textAlign = "center";
-  ctx.fillStyle = gold;
-  ctx.font = "23px Arial, sans-serif";
-  ctx.fillText("S M I S S   R E S T A U R A N T", W / 2, y + 24);
-  ctx.fillStyle = ink;
-  ctx.font = "bold 54px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("赛尔美餐厅", W / 2, y + 108);
-  drawDivider(ctx, W / 2, y + 150, gold);
-  ctx.fillStyle = cinnabar;
-  ctx.font = "44px KaiTi, STKaiti, 楷体, serif";
-  ctx.fillText("诚 挚 邀 请", W / 2, y + 224);
-  ctx.fillStyle = sub;
-  ctx.font = "24px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("诚邀您共赴这场食光之约", W / 2, y + 284);
+  ctx.strokeStyle = "rgba(176,154,104,.5)";
+  ctx.strokeRect(34, 34, W - 68, H - 68);
 
-  const contentTop = L.headerH;
-  // 左栏：菜单卡片
+  const ct = L.contentTop, ch = L.contentHeight;
+  // ===== 左栏：菜单（占满整页，菜名居中 + 英文小字） =====
   const lx = L.LEFT_X, lw = L.LEFT_W;
-  ctx.fillStyle = "rgba(255,252,244,.85)";
-  roundRect(ctx, lx, contentTop, lw, L.leftH, 14, false);
-  ctx.strokeStyle = "rgba(176,154,104,.6)";
-  ctx.lineWidth = 1.5;
-  roundRect(ctx, lx, contentTop, lw, L.leftH, 14, true);
+  ctx.fillStyle = "rgba(255,252,244,.72)";
+  roundRect(ctx, lx, ct, lw, ch, 12, false);
+  ctx.strokeStyle = "rgba(176,154,104,.55)";
+  ctx.lineWidth = 1;
+  roundRect(ctx, lx, ct, lw, ch, 12, true);
+  // 标题固定顶部
+  ctx.textAlign = "center";
+  ctx.fillStyle = cinnabar;
+  ctx.font = "bold 36px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("菜　单", lx + lw / 2, ct + 50);
+  ctx.strokeStyle = "rgba(176,154,104,.5)";
+  ctx.beginPath(); ctx.moveTo(lx + 40, ct + 70); ctx.lineTo(lx + lw - 40, ct + 70); ctx.stroke();
+  // 菜多菜少：按数量自动调间隔，填满下方空间；名称两端对齐
+  var titleBottom = ct + 96;
+  var availH = ct + ch - 26 - titleBottom;
+  var contentH = 0;
+  L.dishRows.forEach(function (r) { contentH += r.cnLines.length * 32 + (r.enLines.length ? 16 + r.enLines.length * 15 : 4); });
+  var n = L.dishRows.length || 1;
+  var gap = Math.max(8, Math.min(62, (availH - contentH) / (n + 1)));
+  var totalUsed = contentH + gap * (n - 1);
+  var ly = titleBottom + Math.max(0, (availH - totalUsed) / 2);
+  var lcx = lx + lw / 2;
+  ctx.textAlign = "center";
+  L.dishRows.forEach(function (r) {
+    var b = ly;
+    ctx.font = L.fontCN;
+    ctx.fillStyle = ink;
+    for (var i = 0; i < r.cnLines.length; i++) { ctx.fillText(r.cnLines[i], lcx, b); b += 32; }
+    if (r.enLines.length) {
+      var eb = b - 32 + 16;
+      ctx.font = L.fontEN;
+      ctx.fillStyle = gold;
+      for (var j = 0; j < r.enLines.length; j++) { ctx.fillText(String(r.enLines[j]).toUpperCase(), lcx, eb); eb += 15; }
+      b = eb - 15 + 2;
+    } else {
+      b += 2;
+    }
+    ly = b + gap;
+  });
+
+  // ===== 右栏 =====
+  const rx = L.RIGHT_X, rw = L.RIGHT_W, cx = rx + rw / 2;
+  // 顶部：赛尔美餐厅 + SMISS
   ctx.textAlign = "center";
   ctx.fillStyle = ink;
-  ctx.font = "bold 32px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("菜　单", lx + lw / 2, contentTop + 46);
-  ctx.textAlign = "left";
-  ctx.fillStyle = valC;
-  ctx.font = L.fontItem;
-  let ly = contentTop + 86;
-  L.itemLines.forEach(function (ln) { ctx.fillText(ln, lx + L.pad, ly); ly += L.lineH; });
-  ly += 12;
+  ctx.font = "bold 46px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("赛尔美餐厅", cx, ct + 58);
+  ctx.fillStyle = gold;
+  ctx.font = "21px Arial, sans-serif";
+  ctx.fillText("S M I S S   R E S T A U R A N T", cx, ct + 94);
+  ctx.fillStyle = ink;
+  ctx.font = "30px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("一席烟火气，万般皆如意", cx, ct + 142);
   ctx.fillStyle = cinnabar;
-  ctx.font = "bold 26px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  L.totalLines.forEach(function (ln) { ctx.fillText(ln, lx + L.pad, ly); ly += L.lineH; });
+  ctx.font = "24px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
+  ctx.fillText("欢迎品鉴 · 共赴食光", cx, ct + 184);
+  ctx.fillStyle = gold;
+  ctx.font = "italic 19px Georgia, serif";
+  ctx.fillText("your life, we care!", cx, ct + 220);
 
-  // 右栏：照片 + 信息
-  const rx = L.RIGHT_X, rw = L.RIGHT_W;
-  ctx.fillStyle = "rgba(255,252,244,.85)";
-  roundRect(ctx, rx, contentTop, rw, L.rightH, 14, false);
-  ctx.strokeStyle = "rgba(176,154,104,.6)";
-  ctx.lineWidth = 1.5;
-  roundRect(ctx, rx, contentTop, rw, L.rightH, 14, true);
-  const pw = rw - 16, ph = L.PHOTO_H - 8;
+  // 预订信息
+  const infoTop = ct + L.brandTopH;
+  ctx.fillStyle = cinnabar;
+  ctx.font = "bold 27px KaiTi, STKaiti, 楷体, serif";
+  ctx.fillText("预 订 信 息", cx, infoTop + 36);
+  ctx.strokeStyle = "rgba(176,154,104,.5)";
+  ctx.beginPath(); ctx.moveTo(rx + 44, infoTop + 52); ctx.lineTo(rx + rw - 44, infoTop + 52); ctx.stroke();
+  const colonX = rx + L.pad + 118, valX = rx + L.pad + 132;
+  let ry = infoTop + 70;
+  L.infoLines.forEach(function (r) {
+    ctx.textAlign = "right";
+    ctx.fillStyle = labelC;
+    ctx.font = L.fontVal;
+    ctx.fillText(r.label + "：", colonX, ry + 7);
+    ctx.textAlign = "left";
+    ctx.fillStyle = valC;
+    r.lines.forEach(function (ln, i) { ctx.fillText(ln, valX, ry + 7 + i * 26); });
+    ry += r.lines.length * 26 + 2;
+  });
+
+  // 竖版照片
+  const photoTop = infoTop + L.infoH + 16;
+  const pw = L.PHOTO_W, ph = L.PHOTO_H;
+  const px0 = cx - pw / 2;
+  ctx.fillStyle = "rgba(255,252,244,.72)";
+  roundRect(ctx, px0 - 6, photoTop - 6, pw + 12, ph + 12, 12, false);
   if (room && room.naturalWidth) {
     const scale = Math.max(pw / room.naturalWidth, ph / room.naturalHeight);
     const sw = pw / scale, sh = ph / scale;
     const sx = (room.naturalWidth - sw) / 2, sy = (room.naturalHeight - sh) / 2;
     ctx.save();
-    roundRect(ctx, rx + 8, contentTop + 12, pw, ph, 10, false);
+    roundRect(ctx, px0, photoTop, pw, ph, 10, false);
     ctx.clip();
-    ctx.drawImage(room, sx, sy, sw, sh, rx + 8, contentTop + 12, pw, ph);
+    ctx.drawImage(room, sx, sy, sw, sh, px0, photoTop, pw, ph);
     ctx.restore();
-    ctx.strokeStyle = "rgba(176,154,104,.5)";
-    ctx.lineWidth = 1;
-    roundRect(ctx, rx + 8, contentTop + 12, pw, ph, 10, true);
+    ctx.strokeStyle = "rgba(176,154,104,.7)";
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, px0, photoTop, pw, ph, 10, true);
   } else {
     ctx.fillStyle = "#efe7d6";
-    roundRect(ctx, rx + 8, contentTop + 12, pw, ph, 10, false);
+    roundRect(ctx, px0, photoTop, pw, ph, 10, false);
     ctx.fillStyle = sub;
     ctx.textAlign = "center";
     ctx.font = "22px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-    ctx.fillText(o.room || "包间", rx + rw / 2, contentTop + 12 + ph / 2 + 8);
+    ctx.fillText(o.room || "包间", cx, photoTop + ph / 2 + 8);
   }
-  // 信息行
-  const labelRX = rx + L.pad + 118, valX = rx + L.pad + 134;
-  let ry = contentTop + 24 + L.PHOTO_H + 20;
-  L.infoLines.forEach(function (r) {
-    ctx.textAlign = "right";
-    ctx.fillStyle = labelC;
-    ctx.font = L.fontVal;
-    ctx.fillText(r.label + "：", labelRX, ry + 8);
-    ctx.textAlign = "left";
-    ctx.fillStyle = valC;
-    r.lines.forEach(function (ln, i) { ctx.fillText(ln, valX, ry + 8 + i * L.lineH); });
-    ry += r.lines.length * L.lineH + L.gap;
-  });
 
-  // 页脚
-  ctx.textAlign = "center";
-  ctx.fillStyle = ink;
-  ctx.font = "34px KaiTi, STKaiti, 楷体, serif";
-  ctx.fillText("一席烟火气，万般皆如意", W / 2, H - 150);
-  ctx.fillStyle = gold;
-  ctx.font = "24px SimSun, \"Songti SC\", \"Noto Serif SC\", serif";
-  ctx.fillText("欢迎品鉴 · 共赴食光", W / 2, H - 96);
+  // 底部：logo（贴内容区底部）
+  const logoTop = ct + ch - L.brandBottomH;
+  if (logo && logo.naturalWidth) {
+    const lw0 = logo.naturalWidth * 80 / logo.naturalHeight;
+    const lw2 = Math.min(lw0, 210);
+    const lh2 = lw2 * logo.naturalHeight / logo.naturalWidth;
+    ctx.drawImage(logo, cx - lw2 / 2, logoTop, lw2, lh2);
+  }
+
   const url = cv.toDataURL("image/png");
   $("inviteImg").src = url;
   window.__inviteUrl = url;
@@ -1878,7 +1954,7 @@ function paintInvite(cv, ctx, W, H, o, logo, content, room) {
 }
 async function drawInvite(o) {
   const content = buildInviteLines(o);
-  const W = 1080;
+  const W = 1000;
   const tmp = document.createElement("canvas");
   const m = layoutInvite(tmp.getContext("2d"), content, W);
   const H = m.height;

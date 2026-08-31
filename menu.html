@@ -960,7 +960,7 @@ function idbPut(key, val) {
     } catch (e) { reject(e); }
   });
 }
-const CAT_ORDER = ["汤羹", "汤", "粤菜", "川湘菜", "凉菜", "素菜", "主食", "甜点", "饮品"];
+const CAT_ORDER = ["汤羹", "汤", "粤菜", "川湘菜", "湖北菜", "凉菜", "素菜", "主食", "甜点", "饮品"];
 function sortDishes(list) {
   return list.slice().sort((a, b) => {
     const ia = CAT_ORDER.indexOf(a.cat), ib = CAT_ORDER.indexOf(b.cat);

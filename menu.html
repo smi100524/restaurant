@@ -134,10 +134,6 @@ input,textarea,select{font-family:inherit}
   border-bottom:1px solid var(--line);
 }
 .cats::-webkit-scrollbar{display:none}
-.cat-search-btn{position:sticky;right:0;flex:0 0 auto;margin-left:auto;width:34px;height:34px;border-radius:8px;background:var(--celadon);color:#f6efe0;font-size:15px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(95,127,121,.3);cursor:pointer}
-.cat-search-panel{position:sticky;top:53px;z-index:44;background:rgba(245,240,228,.97);padding:8px 16px 10px;border-bottom:1px solid var(--line);display:none}
-.cat-search-panel.show{display:block}
-.cat-search-panel input{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:#fffdf6;font-size:14px;outline:none}
 .cat-chip{
   flex:0 0 auto;padding:7px 16px;border-radius:4px;
   background:transparent;border:1px solid var(--line);
@@ -507,9 +503,6 @@ input,textarea,select{font-family:inherit}
 <div class="search">
   <span class="icon">🔍</span>
   <input id="searchInput" type="search" placeholder="搜索菜品，如：宫保鸡丁、辣的…" autocomplete="off">
-</div>
-<div class="cat-search-panel" id="catSearchPanel">
-  <input id="catSearchInput" type="search" placeholder="搜索菜品…" autocomplete="off">
 </div>
 
 <div class="section-title">
@@ -1074,7 +1067,7 @@ function esc(s) {
 function renderCats() {
   $("cats").innerHTML = CATS.map(c =>
     `<button class="cat-chip${state.cat === c ? " active" : ""}" data-cat="${c}" type="button">${c}</button>`
-  ).join("") + `<button class="cat-search-btn" id="catSearchBtn" type="button">🔍</button>`;
+  ).join("");
 }
 function photoGradient(cat) {
   const g = {
@@ -1363,12 +1356,6 @@ document.addEventListener("click", e => {
 
 /* ============ 事件：分类 / 搜索 ============ */
 $("cats").addEventListener("click", e => {
-  if (e.target.closest(".cat-search-btn") || e.target.closest("#catSearchBtn")) {
-    const panel = $("catSearchPanel");
-    panel.classList.toggle("show");
-    if (panel.classList.contains("show")) { $("catSearchInput").value = state.keyword || ""; $("catSearchInput").focus(); }
-    return;
-  }
   const chip = e.target.closest(".cat-chip");
   if (!chip) return;
   state.cat = chip.dataset.cat;
@@ -1380,11 +1367,7 @@ $("cats").addEventListener("click", e => {
 let searchTimer;
 $("searchInput").addEventListener("input", e => {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => { state.keyword = e.target.value; renderAll(); var ci = $("catSearchInput"); if (ci) ci.value = e.target.value; }, 180);
-});
-$("catSearchInput").addEventListener("input", e => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => { state.keyword = e.target.value; renderAll(); var si = $("searchInput"); if (si) si.value = e.target.value; }, 180);
+  searchTimer = setTimeout(() => { state.keyword = e.target.value; renderAll(); }, 180);
 });
 
 /* ============ 抽屉开关 ============ */
@@ -2125,17 +2108,23 @@ async function handleExportLink() {
   var a=document.getElementById("bgMusic");
   var b=document.getElementById("musicBtn");
   if(!a||!b) return;
+  var KEY="smiss_music_v1";
   a.volume=0.4;
-  var playing=false;
-  function setOn(on){ playing=on; b.classList.toggle("off",!on); b.textContent=on?"🎵":"🔇"; }
-  function tryPlay(){
-    if(!a) return;
-    var p=a.play();
-    if(p&&p.then){ p.then(function(){ setOn(true); }).catch(function(){}); }
+  function save(){
+    try{ sessionStorage.setItem(KEY, JSON.stringify({ t: a.currentTime||0, on: !a.paused })); }catch(e){}
   }
-  setOn(false);
-  tryPlay(); /* 部分浏览器会拦截，首次交互再触发 */
-  function firstGesture(){ tryPlay(); }
+  function setOn(on){ b.classList.toggle("off",!on); b.textContent=on?"🎵":"🔇"; }
+  function tryPlay(pos){
+    if(pos){ try{ a.currentTime=pos; }catch(e){} }
+    var p=a.play();
+    if(p&&p.then){ p.then(function(){ setOn(true); }).catch(function(){ setOn(false); }); }
+  }
+  /* 跨页面续播：记住上次是否在播与进度 */
+  var saved=null; try{ saved=JSON.parse(sessionStorage.getItem(KEY)||"null"); }catch(e){}
+  var wantOn = saved ? !!saved.on : true;
+  if(wantOn){ tryPlay(saved?saved.t:0); } else { setOn(false); }
+  /* 自动播放被拦截时，首次交互再触发 */
+  function firstGesture(){ if(a.paused){ tryPlay(); } }
   document.addEventListener("touchstart", firstGesture, {once:true});
   document.addEventListener("touchend", firstGesture, {once:true});
   document.addEventListener("click", firstGesture, {once:true});
@@ -2143,6 +2132,10 @@ async function handleExportLink() {
     e.stopPropagation();
     if(a.paused){ tryPlay(); } else { a.pause(); setOn(false); }
   });
+  /* 离开页面/隐藏时保存进度，跳转其他页不重新开始 */
+  setInterval(save, 1500);
+  window.addEventListener("pagehide", save);
+  document.addEventListener("visibilitychange", function(){ if(document.hidden){ save(); } });
 })();
 </script>
 

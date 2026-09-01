@@ -532,17 +532,23 @@ setTimeout(hideLoader, 10000);
   var a=document.getElementById("bgMusic");
   var b=document.getElementById("musicBtn");
   if(!a||!b) return;
+  var KEY="smiss_music_v1";
   a.volume=0.4;
-  var playing=false;
-  function setOn(on){ playing=on; b.classList.toggle("off",!on); b.textContent=on?"🎵":"🔇"; }
-  function tryPlay(){
-    if(!a) return;
-    var p=a.play();
-    if(p&&p.then){ p.then(function(){ setOn(true); }).catch(function(){}); }
+  function save(){
+    try{ sessionStorage.setItem(KEY, JSON.stringify({ t: a.currentTime||0, on: !a.paused })); }catch(e){}
   }
-  setOn(false);
-  tryPlay(); /* 部分浏览器会拦截，首次交互再触发 */
-  function firstGesture(){ tryPlay(); }
+  function setOn(on){ b.classList.toggle("off",!on); b.textContent=on?"🎵":"🔇"; }
+  function tryPlay(pos){
+    if(pos){ try{ a.currentTime=pos; }catch(e){} }
+    var p=a.play();
+    if(p&&p.then){ p.then(function(){ setOn(true); }).catch(function(){ setOn(false); }); }
+  }
+  /* 跨页面续播：记住上次是否在播与进度 */
+  var saved=null; try{ saved=JSON.parse(sessionStorage.getItem(KEY)||"null"); }catch(e){}
+  var wantOn = saved ? !!saved.on : true;
+  if(wantOn){ tryPlay(saved?saved.t:0); } else { setOn(false); }
+  /* 自动播放被拦截时，首次交互再触发 */
+  function firstGesture(){ if(a.paused){ tryPlay(); } }
   document.addEventListener("touchstart", firstGesture, {once:true});
   document.addEventListener("touchend", firstGesture, {once:true});
   document.addEventListener("click", firstGesture, {once:true});
@@ -550,6 +556,10 @@ setTimeout(hideLoader, 10000);
     e.stopPropagation();
     if(a.paused){ tryPlay(); } else { a.pause(); setOn(false); }
   });
+  /* 离开页面/隐藏时保存进度，跳转其他页不重新开始 */
+  setInterval(save, 1500);
+  window.addEventListener("pagehide", save);
+  document.addEventListener("visibilitychange", function(){ if(document.hidden){ save(); } });
 })();
 </script>
 

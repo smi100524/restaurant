@@ -116,8 +116,9 @@ input,textarea,select{font-family:inherit}
 .divider span:last-child{background:linear-gradient(90deg,var(--gold),transparent)}
 .divider i{font-style:normal;color:var(--gold);font-size:9px}
 .search{
-  margin:12px 16px 6px;display:flex;align-items:center;gap:8px;
-  background:#fffdf6;border:1px solid var(--line);border-radius:6px;padding:10px 16px;
+  position:sticky;top:54px;z-index:44;
+  margin:0 16px 6px;display:flex;align-items:center;gap:8px;
+  background:rgba(255,253,246,.98);border:1px solid var(--line);border-radius:6px;padding:10px 16px;
   box-shadow:0 4px 12px rgba(47,58,52,.08);
   text-align:left;
 }
@@ -420,7 +421,7 @@ input,textarea,select{font-family:inherit}
   .slogan{font-size:14px;letter-spacing:2px}
   .verse{font-size:16px;letter-spacing:3px}
   .verse.sub{font-size:13px;letter-spacing:2px}
-  .search{margin:10px 12px 2px}
+  .search{top:54px;margin:0 12px 2px}
   .divider{margin:16px auto}
   .moon{width:48px;height:48px;top:10px;right:10px}
   .section-title{padding:12px 14px 10px}

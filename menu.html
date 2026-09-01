@@ -2115,6 +2115,7 @@ async function handleExportLink() {
   }
   function setOn(on){ b.classList.toggle("off",!on); b.textContent=on?"🎵":"🔇"; }
   function tryPlay(pos){
+    if(!a) return;
     if(pos){ try{ a.currentTime=pos; }catch(e){} }
     var p=a.play();
     if(p&&p.then){ p.then(function(){ setOn(true); }).catch(function(){ setOn(false); }); }
@@ -2122,12 +2123,26 @@ async function handleExportLink() {
   /* 跨页面续播：记住上次是否在播与进度 */
   var saved=null; try{ saved=JSON.parse(sessionStorage.getItem(KEY)||"null"); }catch(e){}
   var wantOn = saved ? !!saved.on : true;
-  if(wantOn){ tryPlay(saved?saved.t:0); } else { setOn(false); }
-  /* 自动播放被拦截时，首次交互再触发 */
-  function firstGesture(){ if(a.paused){ tryPlay(); } }
-  document.addEventListener("touchstart", firstGesture, {once:true});
-  document.addEventListener("touchend", firstGesture, {once:true});
-  document.addEventListener("click", firstGesture, {once:true});
+  if(!wantOn){ setOn(false); }
+  function boot(){ if(wantOn){ tryPlay(saved?saved.t:0); } }
+  /* 尽早、多次尝试自动播放（部分环境需要等元数据/桥接就绪） */
+  boot();
+  if(document.readyState !== "loading"){ boot(); }
+  document.addEventListener("DOMContentLoaded", boot);
+  setTimeout(function(){ if(wantOn && a.paused){ tryPlay(saved?saved.t:0); } }, 600);
+  setTimeout(function(){ if(wantOn && a.paused){ tryPlay(saved?saved.t:0); } }, 1800);
+  /* 微信 JSBridge 就绪时播放 */
+  document.addEventListener("WeixinJSBridgeReady", function(){ if(a.paused){ tryPlay(); } }, {once:true});
+  /* 浏览器策略：首次任意点击/触摸自动开始（点音乐按钮除外，避免开关冲突） */
+  var onceDone=false;
+  function gesture(e){
+    try{ if(e && e.target && e.target.closest && e.target.closest("#musicBtn")) return; }catch(err){}
+    if(onceDone) return;
+    if(a.paused){ onceDone=true; tryPlay(); }
+  }
+  ["touchstart","touchend","click"].forEach(function(ev){
+    document.addEventListener(ev, gesture, {passive:true});
+  });
   b.addEventListener("click", function(e){
     e.stopPropagation();
     if(a.paused){ tryPlay(); } else { a.pause(); setOn(false); }

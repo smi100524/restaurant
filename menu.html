@@ -954,7 +954,7 @@ function idbPut(key, val) {
     } catch (e) { reject(e); }
   });
 }
-const CAT_ORDER = ["汤羹", "汤", "粤菜", "川湘菜", "湖北菜", "凉菜", "素菜", "主食", "甜点", "饮品"];
+const CAT_ORDER = ["汤羹", "汤", "凉菜", "粤菜", "川湘菜", "湖北菜", "素菜", "甜点", "点心", "饮品", "主食"];
 function sortDishes(list) {
   return list.slice().sort((a, b) => {
     const ia = CAT_ORDER.indexOf(a.cat), ib = CAT_ORDER.indexOf(b.cat);
@@ -1688,7 +1688,14 @@ function buildInviteLines(o) {
   const dishes = (o.items || []).map(function (it) {
     var d = null;
     try { d = MENU.find(function (x) { return x.id === it.id; }); } catch (e) {}
-    return { cn: it.name || "", en: (d && d.en) ? d.en : "" };
+    return { cn: it.name || "", en: (d && d.en) ? d.en : "", cat: (d && d.cat) ? d.cat : "" };
+  });
+  // 菜品按分类顺序排列（汤第一、凉菜第二、主食最后）
+  dishes.sort(function (a, b) {
+    var ia = CAT_ORDER.indexOf(a.cat), ib = CAT_ORDER.indexOf(b.cat);
+    if (ia === -1) ia = 90;
+    if (ib === -1) ib = 90;
+    return ia - ib;
   });
   return { rows: rows, dishes: dishes, total: o.total || 0 };
 }

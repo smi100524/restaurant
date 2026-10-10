@@ -826,7 +826,16 @@ async function buildBaojianXlsx(o) {
     c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
     c.border = border;
   });
-  const items = o.items || [];
+  // 打印表按分类顺序排列：汤羹 → 凉菜 → 粤菜 → 川湘菜 → 湖北菜 → 素菜 → 点心 → 饮品 → 主食
+  const items = (o.items || []).slice().sort(function (a, b) {
+    var da = MENU.find(function (x) { return x.id === a.id; });
+    var db = MENU.find(function (x) { return x.id === b.id; });
+    var ia = CAT_ORDER.indexOf(da ? da.cat : "");
+    var ib = CAT_ORDER.indexOf(db ? db.cat : "");
+    if (ia === -1) ia = 90;
+    if (ib === -1) ib = 90;
+    return ia - ib;
+  });
   let r = 4;
   items.forEach((it, i) => {
     const row = ws.getRow(r); row.height = 33;

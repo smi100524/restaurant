@@ -112,7 +112,24 @@ input,textarea,select{font-family:inherit}
 }
 .panel-sticky{overflow:visible}
 .panel-sticky .panel-head{border-radius:8px 8px 0 0}
-.ph-sticky{position:sticky;top:0;z-index:25;box-shadow:0 3px 10px rgba(47,58,52,.08)}
+.ph-sticky{position:sticky;top:62px;z-index:25;box-shadow:0 3px 10px rgba(47,58,52,.08)}
+/* ===== 顶部分项导航 ===== */
+.admin-nav{
+  position:sticky;top:0;z-index:40;
+  display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;
+  padding:10px 12px;margin:12px 0 6px;
+  background:rgba(245,240,228,.97);backdrop-filter:blur(8px);
+  border:1px solid var(--line);border-radius:8px;
+  box-shadow:0 3px 12px rgba(47,58,52,.10);
+}
+.admin-nav::-webkit-scrollbar{display:none}
+.admin-nav a{
+  flex:0 0 auto;padding:7px 14px;border-radius:4px;font-size:13px;letter-spacing:1px;
+  color:var(--ink);border:1px solid var(--line);background:#fffdf6;text-decoration:none;
+  white-space:nowrap;transition:all .15s;
+}
+.admin-nav a:hover{border-color:var(--celadon);color:var(--celadon-deep)}
+.admin-nav a.active{background:var(--celadon);border-color:var(--celadon);color:#f6efe0}
 .panel-head h2{font-size:17px;font-weight:700;letter-spacing:3px;display:flex;align-items:center;gap:8px}
 .panel-head h2::before{content:"◆";font-size:10px;color:var(--gold)}
 .panel-head .hint{font-size:12px;color:var(--sub)}
@@ -343,10 +360,21 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
 
 <main class="wrap">
 
+  <nav class="admin-nav" id="adminNav">
+    <a href="#sec-cat" data-sec="sec-cat">品类管理</a>
+    <a href="#sec-dish" data-sec="sec-dish">菜品管理</a>
+    <a href="#sec-home" data-sec="sec-home">首页内容</a>
+    <a href="#sec-data" data-sec="sec-data">数据管理</a>
+    <a href="#sec-mail" data-sec="sec-mail">邮件设置</a>
+    <a href="#sec-sys" data-sec="sec-sys">系统设置</a>
+    <a href="#sec-maint" data-sec="sec-maint">数据维护</a>
+    <a href="#sec-import" data-sec="sec-import">批量导入</a>
+  </nav>
+
   <div class="notice">菜单、预订、订单已接入<b>Supabase 云端数据库</b>：管理端修改后全站实时同步，顾客订单实时汇总到「数据管理」。</div>
 
   <!-- 品类管理 -->
-  <section class="panel panel-sticky">
+  <section class="panel panel-sticky" id="sec-cat">
       <div class="panel-head ph-sticky">
       <h2>品类管理</h2>
       <span class="hint">新增 / 改名 / 删除分类，点菜页顶部会同步显示</span>
@@ -361,7 +389,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </section>
 
   <!-- 菜品管理 -->
-  <section class="panel panel-sticky">
+  <section class="panel panel-sticky" id="sec-dish">
     <div class="panel-head ph-sticky">
       <div class="ph-left">
       <h2>菜品管理</h2>
@@ -379,7 +407,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </section>
 
   <!-- 首页内容设置 -->
-  <section class="panel">
+  <section class="panel" id="sec-home">
     <div class="panel-head">
       <h2>首页内容设置</h2>
       <span class="hint">修改首页「雅致包间」和「当季臻选」的名称与图片；菜品卡片可增删、排序，保存后首页同步更新</span>
@@ -400,7 +428,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </section>
 
   <!-- 数据管理 -->
-  <section class="panel">
+  <section class="panel" id="sec-data">
     <div class="panel-head">
       <h2>数据管理</h2>
       <span class="hint" id="dataSummary"></span>
@@ -422,7 +450,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </section>
 
   <!-- 邮件通知设置 -->
-  <section class="panel">
+  <section class="panel" id="sec-mail">
     <div class="panel-head">
       <h2>邮件通知设置</h2>
       <span class="hint">有新的预订 / 订单时，自动发邮件到您的邮箱</span>
@@ -460,7 +488,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </section>
 
   <!-- 系统设置 -->
-  <section class="panel">
+  <section class="panel" id="sec-sys">
     <div class="panel-head">
       <h2>系统设置</h2>
       <span class="hint">修改管理端登录密码</span>
@@ -488,7 +516,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </section>
 
   <!-- 数据维护 -->
-  <section class="panel">
+  <section class="panel" id="sec-maint">
     <div class="panel-head">
       <h2>数据维护</h2>
       <span class="hint">备份 / 恢复，防止误操作</span>
@@ -502,7 +530,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);background:#fff
   </section>
 
   <!-- 批量导入 -->
-  <section class="panel">
+  <section class="panel" id="sec-import">
     <div class="panel-head">
       <h2>批量导入菜品</h2>
       <span class="hint">用 CSV 模板一次添加多道菜</span>
@@ -1972,6 +2000,40 @@ function bindDishEditorTranslate() {
     var pl = document.getElementById("pageLoader");
     if (pl) pl.classList.add("done");
   }
+})();
+
+/* ===== 管理页顶部分项导航：平滑滚动 + 高亮 ===== */
+(function () {
+  var nav = document.getElementById("adminNav");
+  if (!nav) return;
+  var links = Array.prototype.slice.call(nav.querySelectorAll("a"));
+  function setActive(id) {
+    links.forEach(function (a) { a.classList.toggle("active", a.getAttribute("data-sec") === id); });
+  }
+  links.forEach(function (a) {
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      var el = document.getElementById(a.getAttribute("data-sec"));
+      if (!el) return;
+      var offset = nav.offsetHeight + 14;
+      var y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+      setActive(a.getAttribute("data-sec"));
+    });
+  });
+  function onScroll() {
+    if (!nav.offsetHeight) return; /* 登录前页面隐藏，跳过 */
+    var navH = nav.offsetHeight + 20;
+    var cur = null;
+    links.forEach(function (a) {
+      var el = document.getElementById(a.getAttribute("data-sec"));
+      if (el && el.getBoundingClientRect().top - navH <= 10) cur = a.getAttribute("data-sec");
+    });
+    setActive(cur || links[0].getAttribute("data-sec"));
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  setActive(links[0].getAttribute("data-sec"));
+  window.addEventListener("resize", onScroll);
 })();
 </script>
 <!-- 保存进度窗 -->

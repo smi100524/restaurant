@@ -2002,38 +2002,30 @@ function bindDishEditorTranslate() {
   }
 })();
 
-/* ===== 管理页顶部分项导航：平滑滚动 + 高亮 ===== */
+/* ===== 管理页顶部分项导航：选项卡切换（一次只显示一个板块） ===== */
 (function () {
   var nav = document.getElementById("adminNav");
   if (!nav) return;
   var links = Array.prototype.slice.call(nav.querySelectorAll("a"));
-  function setActive(id) {
+  var IDS = links.map(function (a) { return a.getAttribute("data-sec"); });
+  function show(id) {
+    IDS.forEach(function (sid) {
+      var el = document.getElementById(sid);
+      if (el) el.style.display = (sid === id) ? "" : "none";
+    });
     links.forEach(function (a) { a.classList.toggle("active", a.getAttribute("data-sec") === id); });
+    try { sessionStorage.setItem("smiss_admin_tab", id); } catch (e) {}
   }
   links.forEach(function (a) {
     a.addEventListener("click", function (e) {
       e.preventDefault();
-      var el = document.getElementById(a.getAttribute("data-sec"));
-      if (!el) return;
-      var offset = nav.offsetHeight + 14;
-      var y = el.getBoundingClientRect().top + window.pageYOffset - offset;
-      window.scrollTo({ top: y, behavior: "smooth" });
-      setActive(a.getAttribute("data-sec"));
+      show(a.getAttribute("data-sec"));
+      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e2) { window.scrollTo(0, 0); }
     });
   });
-  function onScroll() {
-    if (!nav.offsetHeight) return; /* 登录前页面隐藏，跳过 */
-    var navH = nav.offsetHeight + 20;
-    var cur = null;
-    links.forEach(function (a) {
-      var el = document.getElementById(a.getAttribute("data-sec"));
-      if (el && el.getBoundingClientRect().top - navH <= 10) cur = a.getAttribute("data-sec");
-    });
-    setActive(cur || links[0].getAttribute("data-sec"));
-  }
-  window.addEventListener("scroll", onScroll, { passive: true });
-  setActive(links[0].getAttribute("data-sec"));
-  window.addEventListener("resize", onScroll);
+  var saved = null;
+  try { saved = sessionStorage.getItem("smiss_admin_tab"); } catch (e) {}
+  show(IDS.indexOf(saved) >= 0 ? saved : IDS[0]);
 })();
 </script>
 <!-- 保存进度窗 -->

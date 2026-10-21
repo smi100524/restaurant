@@ -794,129 +794,39 @@ function waitImagesThenHide() {
 }
 const $ = id => document.getElementById(id);
 const fmt = n => "¥" + n;
-/* 金额转中文大写（支持到亿，含角分） */
-function rmbUpper(n) {
-  var num = Math.round((Number(n) || 0) * 100);
-  if (!num) return "零元整";
-  var D = "零壹贰叁肆伍陆柒捌玖";
-  var U = ["", "拾", "佰", "仟", "万", "拾", "佰", "仟", "亿", "拾", "佰", "仟"];
-  var intPart = Math.floor(num / 100);
-  var f = num % 100;
-  var str = String(intPart);
-  var r = "", zero = false;
-  for (var k = 0; k < str.length; k++) {
-    var d = +str.charAt(k);
-    var u = str.length - 1 - k;
-    if (d === 0) {
-      zero = true;
-      if (u === 4 && r && r.slice(-1) !== "万") r += "万";
-    } else {
-      if (zero && r) r += "零";
-      zero = false;
-      r += D.charAt(d) + U[u];
-    }
-  }
-  if (r) r += "元";
-  if (f === 0) { r += "整"; }
-  else {
-    var j = Math.floor(f / 10), fe = f % 10;
-    if (j) r += D.charAt(j) + "角";
-    if (fe) { if (!j) r += "零"; r += D.charAt(fe) + "分"; }
-    else if (j) r += "整";
-  }
-  return r;
-}
-/* 打印表：餐厅包间客户接待申请表版式 */
 async function buildBaojianXlsx(o) {
   const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("包间菜单", { pageSetup: { paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } } });
+  const ws = wb.addWorksheet("包间菜单");
   ws.views = [{ showGridLines: false }];
   const FONT = "微软雅黑";
   const thin = { style: "thin", color: { argb: "FF7F7F7F" } };
   const border = { top: thin, bottom: thin, left: thin, right: thin };
-  const fillHead = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
-  const fillLabel = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF7F7F7" } };
-  const COLS = 9;
-  const widths = [4, 6, 26, 10, 11, 7, 7, 11, 15];
-  widths.forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
-
-  function styleCell(r, c, v, opt) {
-    opt = opt || {};
-    const cell = ws.getCell(r, c);
-    if (v !== undefined) cell.value = v;
-    cell.font = { name: FONT, size: opt.size || 11, bold: !!opt.bold };
-    cell.alignment = { horizontal: opt.align || "center", vertical: "middle", wrapText: true };
-    if (opt.fill) cell.fill = opt.fill;
-    cell.border = border;
-    return cell;
-  }
-  function boxRow(r, h) {
-    ws.getRow(r).height = h;
-    for (let c = 1; c <= COLS; c++) ws.getCell(r, c).border = border;
-  }
-  function mergeRow(r, c1, c2, v, opt) {
-    opt = opt || {};
-    ws.mergeCells(r, c1, r, c2);
-    styleCell(r, c1, v, opt);
-    for (let c = c1; c <= c2; c++) {
-      ws.getCell(r, c).border = border;
-      if (opt.fill) ws.getCell(r, c).fill = opt.fill;
-    }
-    ws.getRow(r).height = opt.h || 26;
-  }
-
-  // ====== 标题 ======
-  ws.mergeCells(1, 1, 1, COLS);
-  styleCell(1, 1, "餐厅包间客户接待申请表", { size: 20, bold: true });
-  ws.getRow(1).height = 42;
-
-  // ====== 表头信息 ======
-  const titleText = "餐厅包间客户接待申请表-" + (o.by || o.name || "") + "-" + (o.date || "");
-  mergeRow(2, 1, 1, "标题", { fill: fillLabel, size: 10 });
-  mergeRow(2, 2, 6, titleText, { align: "left", size: 11 });
-  mergeRow(2, 7, 7, "流程编号", { fill: fillLabel, size: 10 });
-  mergeRow(2, 8, 9, o.no || "", { size: 11 });
-
-  mergeRow(3, 1, 1, "申请人", { fill: fillLabel, size: 10 });
-  mergeRow(3, 2, 3, o.by || o.name || "", { size: 11 });
-  mergeRow(3, 4, 4, "申请部门", { fill: fillLabel, size: 10 });
-  mergeRow(3, 5, 6, o.dept || "", { size: 11 });
-  mergeRow(3, 7, 7, "就餐时间", { fill: fillLabel, size: 10 });
-  mergeRow(3, 8, 9, ((o.date || "") + " " + (o.time || "")).trim(), { size: 11 });
-
-  // ====== 申请信息 ======
-  ws.mergeCells(4, 1, 4, COLS);
-  styleCell(4, 1, "申请信息", { align: "left", bold: true, size: 11, fill: fillHead });
-  for (let c = 1; c <= COLS; c++) { ws.getCell(4, c).fill = fillHead; ws.getCell(4, c).border = border; }
-  ws.getRow(4).height = 24;
-
-  const hour = parseInt(String(o.time || "12:00").split(":")[0], 10);
-  const isLunch = !(hour >= 15);
-  mergeRow(5, 1, 1, "就餐时间", { fill: fillLabel, size: 10 });
-  mergeRow(5, 2, 3, (isLunch ? "☑ 中餐　☐ 晚餐" : "☐ 中餐　☑ 晚餐"), { size: 11 });
-  mergeRow(5, 4, 4, "陪同人数", { fill: fillLabel, size: 10 });
-  mergeRow(5, 5, 5, "", { size: 11 });
-  mergeRow(5, 6, 6, "客户人数", { fill: fillLabel, size: 10 });
-  mergeRow(5, 7, 7, o.people || "", { size: 11 });
-  mergeRow(5, 8, 9, "包间：" + (o.room || "西式包间"), { size: 10 });
-
-  mergeRow(6, 1, 1, "接待客户名称", { fill: fillLabel, size: 10 });
-  mergeRow(6, 2, 9, o.name || "", { align: "left", size: 11 });
-
-  mergeRow(7, 1, 1, "招待类型及标准", { fill: fillLabel, size: 10 });
-  mergeRow(7, 2, 6, "客户接待", { align: "left", size: 11 });
-  mergeRow(7, 7, 7, "厂别", { fill: fillLabel, size: 10 });
-  mergeRow(7, 8, 9, "", { size: 11 });
-
-  // ====== 表格表头 ======
-  const heads = ["□", "序号", "菜名", "类别", "单价（元）", "单位", "数量", "小计", "备注"];
-  const hr = 8;
-  heads.forEach(function (h, i) {
-    styleCell(hr, i + 1, h, { bold: true, size: 11, fill: fillHead });
+  ws.getColumn(1).width = 9.13;
+  ws.getColumn(2).width = 9.75;
+  ws.getColumn(3).width = 25.13;
+  ws.getColumn(4).width = 21.25;
+  ws.getColumn(5).width = 23.75;
+  const r1 = ws.getRow(1); r1.height = 38;
+  const c1 = r1.getCell(1); c1.value = "包间菜单";
+  c1.font = { name: FONT, size: 18, bold: true };
+  c1.alignment = { horizontal: "center", vertical: "middle" };
+  ws.mergeCells("A1:E1");
+  const r2 = ws.getRow(2); r2.height = 33;
+  const c2 = r2.getCell(1);
+  c2.value = "用餐时间：" + (o.date || "") + " " + (o.time || "") + "，用餐地点：" + (o.room || "西式包间") + "　" + "用餐人数：" + o.people + "　客户：" + (o.name || "");
+  c2.font = { name: FONT, size: 12, bold: true };
+  c2.alignment = { horizontal: "left", vertical: "middle" };
+  ws.mergeCells("A2:E2");
+  const r3 = ws.getRow(3); r3.height = 27;
+  ["序号", "菜类", "菜名", "单价(RMB:元/份)", "备注"].forEach((h, i) => {
+    const c = r3.getCell(i + 1);
+    c.value = h;
+    c.font = { name: FONT, size: 14, bold: true };
+    c.alignment = { horizontal: "center", vertical: "middle" };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
+    c.border = border;
   });
-  ws.getRow(hr).height = 28;
-
-  // ====== 菜品（按分类顺序） ======
+  // 打印表按分类顺序排列：汤羹 → 凉菜 → 粤菜 → 川湘菜 → 湖北菜 → 素菜 → 点心 → 饮品 → 主食
   const items = (o.items || []).slice().sort(function (a, b) {
     var da = MENU.find(function (x) { return x.id === a.id; });
     var db = MENU.find(function (x) { return x.id === b.id; });
@@ -926,44 +836,56 @@ async function buildBaojianXlsx(o) {
     if (ib === -1) ib = 90;
     return ia - ib;
   });
-  let r = hr + 1;
-  items.forEach(function (it, i) {
-    const d = MENU.find(function (x) { return x.id === it.id; });
-    const cat = d ? d.cat : "";
-    const unit = (cat === "汤羹" || cat === "汤") ? "位" : "份";
-    const sub = (Number(it.price) || 0) * (Number(it.qty) || 0);
-    const name = (it.name || "") + (it.option ? "（" + it.option + "）" : "");
-    const vals = ["□", i + 1, name, cat, Number(it.price) || 0, unit, it.qty || 1, sub, ""];
-    vals.forEach(function (v, j) {
-      styleCell(r, j + 1, v, { size: 10, align: j === 2 ? "left" : "center" });
+  let r = 4;
+  items.forEach((it, i) => {
+    const row = ws.getRow(r); row.height = 33;
+    const d = MENU.find(x => x.id === it.id);
+    const vals = [i + 1, d ? d.cat : "", it.name, it.price, it.qty > 1 ? "数量×" + it.qty : ""];
+    vals.forEach((v, j) => {
+      const cell = row.getCell(j + 1);
+      cell.value = v;
+      cell.font = { name: FONT, size: 12, bold: true };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = border;
     });
-    ws.getRow(r).height = 28;
     r++;
   });
-
-  // ====== 合计 ======
-  mergeRow(r, 1, 3, "合计金额", { fill: fillLabel, bold: true, size: 11 });
-  mergeRow(r, 4, 4, Number(o.total) || 0, { bold: true, size: 11 });
-  mergeRow(r, 5, 5, "金额大写", { fill: fillLabel, size: 10 });
-  mergeRow(r, 6, 9, rmbUpper(o.total), { align: "left", bold: true, size: 11 });
-  ws.getRow(r).height = 28;
-  r++;
-
-  // ====== 备注 ======
-  mergeRow(r, 1, 1, "备注", { fill: fillLabel, size: 10 });
-  mergeRow(r, 2, 9, o.note || "", { align: "left", size: 11, h: 34 });
-  r++;
-
-  // ====== 签字意见 ======
-  mergeRow(r, 1, 1, "签字意见", { fill: fillLabel, size: 10, h: 62 });
-  mergeRow(r, 2, 9, "部门审核：　　　　　　行政部：　　　　　　人力行政中心：　　　　　　总经办：", { align: "left", size: 11, h: 62 });
-  r++;
-
-  // ====== 页脚 ======
-  ws.mergeCells(r, 1, r, COLS);
-  styleCell(r, 1, "赛尔美餐厅 SMISS Restaurant　·　" + location.href.split("#")[0], { size: 8, align: "left" });
-  ws.getRow(r).height = 18;
-
+  const firstData = 4;
+  const lastData = r - 1;
+  if (items.length) {
+    let runStart = firstData;
+    for (let i = firstData + 1; i <= lastData + 1; i++) {
+      const cur = i <= lastData ? ws.getCell("B" + i).value : undefined;
+      const prev = ws.getCell("B" + (i - 1)).value;
+      if (cur !== prev) {
+        if (i - 1 > runStart) {
+          ws.mergeCells("B" + runStart + ":B" + (i - 1));
+          for (let rr = runStart; rr <= i - 1; rr++) ws.getCell("B" + rr).border = border;
+        }
+        runStart = i;
+      }
+    }
+  }
+  const rowT = ws.getRow(r); rowT.height = 32;
+  const label = rowT.getCell(1); label.value = "小计(RMB:元/桌)";
+  label.font = { name: FONT, size: 14, bold: true };
+  label.alignment = { horizontal: "center", vertical: "middle" };
+  label.border = border;
+  rowT.getCell(2).border = border;
+  rowT.getCell(3).border = border;
+  const totalC = rowT.getCell(4); totalC.value = o.total;
+  totalC.font = { name: FONT, size: 14, bold: true };
+  totalC.alignment = { horizontal: "center", vertical: "middle" };
+  totalC.border = border;
+  rowT.getCell(5).border = border;
+  ws.mergeCells("A" + r + ":C" + r);
+  // 底部确认行：申请部门 / 申请人 / 部门负责人确认
+  const rowC = ws.getRow(r + 1); rowC.height = 36;
+  rowC.getCell(1).value = "申请部门：＿＿＿＿＿＿　　申请人：＿＿＿＿＿＿　　部门负责人确认：＿＿＿＿＿＿";
+  rowC.getCell(1).font = { name: FONT, size: 12, bold: true };
+  rowC.getCell(1).alignment = { horizontal: "center", vertical: "middle" };
+  ws.mergeCells("A" + (r + 1) + ":E" + (r + 1));
+  for (let cc = 1; cc <= 5; cc++) rowC.getCell(cc).border = border;
   return await wb.xlsx.writeBuffer();
 }
 async function exportBaojianXlsx(o) {

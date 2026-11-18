@@ -794,6 +794,24 @@ function waitImagesThenHide() {
 }
 const $ = id => document.getElementById(id);
 const fmt = n => "¥" + n;
+function todayISODate() {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return d.getFullYear() + "-" + mm + "-" + dd;
+}
+function safeFilePart(value, fallback) {
+  const part = String(value || "").trim()
+    .replace(/[\\/:*?"<>|\r\n]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "");
+  return part || fallback;
+}
+function baojianFileName(o) {
+  const customer = safeFilePart(o.name, "客户");
+  const date = safeFilePart(o.date, todayISODate());
+  return customer + "_" + date + ".xlsx";
+}
 async function buildBaojianXlsx(o) {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("包间菜单");
@@ -894,7 +912,7 @@ async function exportBaojianXlsx(o) {
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "包间菜单_" + o.no + ".xlsx";
+  a.download = baojianFileName(o);
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -1404,12 +1422,12 @@ async function openCheckout() {
   if (!countItems()) { toast("请先选择菜品哦～"); return; }
   closeDrawer();
   const res = await latestReservation();
+  $("fDate").value = todayISODate();
   if (res) {
     $("fName").value = res.name || "";
     $("fPhone").value = res.phone || "";
     $("fDept").value = res.dept || "";
     $("fBy").value = res.by || "";
-    $("fDate").value = res.date || "";
     $("fTime").value = res.time || "";
     $("fPeople").value = res.people || 2;
     $("fNote").value = res.note || "";
@@ -2053,7 +2071,7 @@ $("exportCopy").addEventListener("click", () => { if (exportCopyUrl) copyText(ex
 async function buildBaojianXlsxFile(o) {
   const buf = await buildBaojianXlsx(o);
   const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-  exportFileName = "包间菜单_" + o.no + ".xlsx";
+  exportFileName = baojianFileName(o);
   if (exportBlobUrl) { try { URL.revokeObjectURL(exportBlobUrl); } catch (e) {} }
   exportBlobUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -2090,6 +2108,7 @@ async function handleExportLink() {
 /* ============ 启动 ============ */
 (async function init() {
   loadCart();
+  $("fDate").value = todayISODate();
   const urlNo = new URLSearchParams(location.search).get("export");
   if (urlNo) showExportOverlay("正在生成包间菜单…", "正在读取订单 " + urlNo + " 的数据，请稍候", false);
   loadEmailCfg();
